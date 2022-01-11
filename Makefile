@@ -4,7 +4,7 @@
 
 #Este es el nombre del archivo .cpp en la carpeta src.
 #El archivo de testeo debe llamarse "test_$(SRC).cpp"
-SRC = shared_memory
+SRC = msg_queue
 
 ###############################################################################
 #	DEVELOPER VARIABLES
