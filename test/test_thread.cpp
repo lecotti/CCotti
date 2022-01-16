@@ -1,4 +1,4 @@
-#include "../headers/thread.h"
+#include "thread.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -35,8 +35,8 @@ void test1 (void)
     printf ("El thread regresó\n");
 }
 
-int main(void)
+/*int main(void)
 {
     test1();
     return 0;
-}
+}*/

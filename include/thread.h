@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <stdio.h>
+#include "tools.h"
 
 class Thread
 {

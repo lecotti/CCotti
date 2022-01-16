@@ -1,4 +1,4 @@
-build
-exe.out
-info1
+build/*
+!build/.gitkeep
 .vscode
+developer

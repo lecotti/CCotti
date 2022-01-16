@@ -1,10 +1,11 @@
-#ifndef SHARED_MEMORY_H
-#define SHARED_MEMORY_H
+#ifndef SHARED_MEM_H
+#define SHARED_MEM_H
 
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <stdio.h>
+#include "tools.h"
 
 template <class arg_t>
 class SharedMemory
@@ -15,24 +16,22 @@ private:
 
 public:
 
-    SharedMemory(int size, const char* path, int id);
+    SharedMemory(const char* path, int id, int size=0);
 
     void write( arg_t* elements, int size, int index=0);
     void write(arg_t element, int index);
     
     arg_t* read(arg_t* array, int size, int index=0);
-    arg_t& read(int index);
+    arg_t read(int index);
 
+    static bool exists(const char* path, int id);
     int free(void);
-
     ~SharedMemory();
 
     void operator= (arg_t element);
-    arg_t operator<< (arg_t element);
+    SharedMemory<arg_t>& operator<< (arg_t element);
     arg_t& operator[] (int index);
 };
-
-#endif //SHARED_MEMORY_H
 
 
 /******************************************************************************
@@ -54,42 +53,40 @@ public:
  *  @return:    None.
  * ***************************************************************************/
 template <class arg_t>
-SharedMemory<arg_t>::SharedMemory(int size, const char* path, int id)
+SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
 {
     key_t key;
-    if ( (key = ftok(path, id) ) != -1)
+    if ( (key = ftok(path, id) ) == -1)
     {
-        if (size)
-        {
-            if( (this->shmid = shmget(key, (size_t)size*sizeof(arg_t), IPC_CREAT | 0666) ) == -1)
-            {
-                perror(RED("shmget.\n"));
-                return;
-            }
-        }
+        perror( ERROR("Couldn't create shared memory with ftok.\n"));
+        return;
+    }
 
-        else
+    if (size)   // Create new
+    {
+        if( (this->shmid = shmget(key, (size_t)size*sizeof(arg_t), IPC_CREAT | 0666) ) == -1)
         {
-            if( (this->shmid = shmget(key, 0, 0) ) == -1)
-            {
-                perror(RED("shmget: shared_memory doesn't exist.\n"));
-                return;
-            }
-        }
-        
-
-        if ( (this->shmaddr = (arg_t*) shmat(this->shmid, NULL, 0)) == (arg_t*) -1)
-        {
-            perror(RED("shmat.\n"));
+            perror(ERROR("Couldn't create shared memory with shmget.\n"));
             return;
         }
     }
 
-    else
+    else    // Connect to existing one
     {
-        perror(RED("ftok.\n"));
+        if( (this->shmid = shmget(key, 0, 0) ) == -1)
+        {
+            perror(ERROR("Shmget: shared_memory doesn't exist.\n"));
+            return;
+        }
+    }
+    
+
+    if ( (this->shmaddr = (arg_t*) shmat(this->shmid, NULL, 0)) == (arg_t*) -1)
+    {
+        perror(RED("Couldn't attach pointer to shared memory with shmaddr.\n"));
         return;
     }
+
 }
 
 /******************************************************************************
@@ -156,10 +153,35 @@ arg_t* SharedMemory<arg_t>::read(arg_t* array, int size, int index)
  *  @return:    UNA COPIA del elemento leido.
  * ***************************************************************************/
 template <class arg_t>
-arg_t& SharedMemory<arg_t>::read(int index)
+arg_t SharedMemory<arg_t>::read(int index)
 {
     return this->shmaddr[index];
 }
+
+/******************************************************************************
+ *  @brief:     Checks whether the shared memory is created or not.
+ * 
+ *  @arg:       path and id: identify the shared memory.
+ * 
+ *  @return:    "true" if exists, "false" otherwise.
+ * ***************************************************************************/
+template <class arg_t>
+bool SharedMemory<arg_t>::exists(const char* path, int id)
+{
+    key_t key;
+    if ( ( key = ftok(path, id) ) == -1)
+    {
+        return false;
+    }
+
+    if (shmget(key, 0, 0) == -1)
+    {
+        return false;
+    }
+
+    return true;    // Existance
+}
+
 
 /******************************************************************************
  *  @brief:     Elimina la shared memory. Esta función debe ser llamada de forma
@@ -174,8 +196,18 @@ arg_t& SharedMemory<arg_t>::read(int index)
 template <class arg_t>
 int SharedMemory<arg_t>::free(void)
 {
-    shmdt((void *) this->shmaddr);
-    return shmctl(this->shmid, IPC_RMID, NULL);
+    if (shmdt((void *) this->shmaddr) != 0)
+    {
+        perror( ERROR("Couldn't detach from shared memory with shmdt.\n"));
+        //Don't return.
+    }
+    if (shmctl(this->shmid, IPC_RMID, NULL) != 0)
+    {
+        perror( ERROR("Couldn't destroy shared memory with shmctl.\n"));
+        return -1;
+    }
+
+    return 0;
 }
 
 /******************************************************************************
@@ -214,9 +246,10 @@ void SharedMemory<arg_t>::operator= (arg_t element)
  *  @return:    Void.
  * ***************************************************************************/
 template <class arg_t>
-arg_t SharedMemory<arg_t>::operator<< (arg_t element)
+SharedMemory<arg_t>& SharedMemory<arg_t>::operator<< (arg_t element)
 {
     this->write(element, 0);
+    return *this;
 }
 
 /******************************************************************************
@@ -231,3 +264,5 @@ arg_t& SharedMemory<arg_t>::operator[] (int index)
 {
     return this->shmaddr[index];
 } 
+
+#endif //SHARED_MEM_H

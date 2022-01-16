@@ -1,8 +1,11 @@
+#ifndef MSG_QUEUE_H
+#define MSG_QUEUE_H
+
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <stdio.h>
 #include <sys/msg.h>
-#include "../headers/tools.h"
+#include "tools.h"
 
 template <class msg_t>
 class MsgQueue
@@ -146,3 +149,6 @@ void MsgQueue<msg_t>::free()
 {
     msgctl(this->msg_id, IPC_RMID, NULL);
 }
+
+
+#endif // MSQUEUE_H

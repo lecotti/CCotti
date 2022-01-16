@@ -1,4 +1,4 @@
-#include "../headers/msg_queue.h"
+#include "msg_queue.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +12,7 @@ struct persona
     int id;
 };
 
-void test1 (void)
+/*void test1 (void)
 {
     struct persona p_s;
     struct persona recibido[5];
@@ -51,7 +51,7 @@ void test1 (void)
     }
 
     queue.free();
-}
+}*/
 
 void test2 (void)
 {
@@ -80,9 +80,9 @@ void test2 (void)
     queue.free();
 }
 
-int main (void)
+/*int main (void)
 {
     
     test1();
     return 0;
-}
+}*/

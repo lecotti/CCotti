@@ -1,4 +1,4 @@
-#include "../headers/thread.h"
+#include "thread.h"
 
 /******************************************************************************
  *  STATIC VARIABLES

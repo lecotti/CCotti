@@ -1,4 +1,4 @@
-#include "../headers/sem.h"
+#include "sem.h"
 
 /******************************************************************************
  *  @brief:     Crea varios semáforos con un valor inicial.

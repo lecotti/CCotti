@@ -5,7 +5,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <stdio.h>
-#include "../headers/tools.h"
+#include "tools.h"
 
 class Sem
 {
