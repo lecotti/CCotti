@@ -8,7 +8,8 @@
 /******************************************************************************
  * Being tested: SharedMemory::ShareMemory(), SharedMemory::exists()
  * 
- * Expected result: shm should be created and destroyed correctly.
+ * Expected result: shm should be created and destroyed correctly. Can't be
+ * created twice, and if it doesn't exists you shouldn't be able to connect to.
  *****************************************************************************/
 TEST(SharedMemTest, Creation)
 {
@@ -16,7 +17,11 @@ TEST(SharedMemTest, Creation)
 
     EXPECT_TRUE(SharedMemory<int>::exists(".", 2));
 
+    EXPECT_THROW(SharedMemory<int>(".", 2, 10), std::runtime_error);
+
     shm.free();
+
+    EXPECT_THROW(SharedMemory<int>(".", 2), std::runtime_error);
 
     EXPECT_FALSE(SharedMemory<int>::exists(".", 2));
 }

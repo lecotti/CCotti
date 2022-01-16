@@ -168,9 +168,9 @@ int Signal::unblock_all(void)
 }
 
 /******************************************************************************
- *  @brief:     Envia una señal al PID.
+ *  @brief:     Envia una señal al PID o al thread.
  * 
- *  @arg:       pid: Process ID.
+ *  @arg:       pid | thread_id: Process | thread ID.
  * 
  *              signal: Señal a mandar.
  * 
@@ -180,16 +180,24 @@ int Signal::kill (pid_t pid, int signal)
 {
     if (::kill(pid, signal) != 0)
     {
-        perror( ERROR("Couldn't send signal to kill.\n"));
+        perror( ERROR("Couldn't send signal to process.\n"));
         return -1;
     }
 
     return 0;
 }
-int Signal::send_signal (pid_t pid, int signal)
+
+int Signal::kill (pthread_t thread_id, int signal)
 {
-    Signal::kill(pid, signal);
+    if (pthread_kill(thread_id, signal) != 0)
+    {
+        perror( ERROR("Couldn't send signal to thread.\n"));
+        return -1;
+    }
+
+    return 0;
 }
+
 
 /******************************************************************************
  *  @brief:     Luego de "time" segundos, se enviará una SIGALRM al proceso que

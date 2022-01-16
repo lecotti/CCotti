@@ -5,10 +5,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-/******************************************************************************
- * Needed declarations
- *****************************************************************************/
-
 static int volatile g_sig;
 
 class SignalTest : public ::testing::Test
@@ -20,33 +16,9 @@ protected:
     }
 };
 
-void add_handler (int signal)
-{
-    g_sig += signal;
-}
-
-void BlockInHandler_handler_first (int signal)
-{
-    Signal::kill(getpid(), SIGUSR2);
-
-    EXPECT_EQ(g_sig, 0);
-
-    Signal::kill(getpid(), SIGINT);
-
-    EXPECT_EQ(g_sig, 0);
-}
-
-void BlockInHandler_handler_second (int signal)
-{
-    Signal::kill(getpid(), SIGUSR2);
-
-    EXPECT_EQ(g_sig, SIGUSR2);
-
-    Signal::kill(getpid(), SIGINT);
-
-    EXPECT_EQ(g_sig, SIGUSR2 + SIGINT);
-}
-
+void add_handler (int signal);
+void BlockInHandler_handler_first (int signal);
+void BlockInHandler_handler_second (int signal);
 
 
 /******************************************************************************
@@ -136,7 +108,7 @@ TEST_F(SignalTest, IgnoreSignal)
     Signal::kill(getpid(), SIGINT);
 
     Signal::set_default_handler(SIGINT);
-    EXPECT_EXIT(Signal::send_signal(getpid(), SIGINT), ::testing::KilledBySignal(SIGINT), "");
+    EXPECT_EXIT(Signal::kill(getpid(), SIGINT), ::testing::KilledBySignal(SIGINT), "");
 }
 
 
@@ -169,7 +141,7 @@ TEST_F(SignalTest, BlockInHandler)
 /******************************************************************************
  * Being tested: Signal::wait_and_handle(), Signal::set_alarm()
  * 
- * Expected result: With this function, the handler should be called after the wait.
+ * Expected result: The handler should be called after the wait.
  *****************************************************************************/
 TEST_F(SignalTest, WaitAndHandle)
 {
@@ -182,7 +154,7 @@ TEST_F(SignalTest, WaitAndHandle)
 /******************************************************************************
  * Being tested: Signal::wait_and_continue(), Signal::set_alarm()
  * 
- * Expected result: With this function, the handler should NOT be called after the wait.
+ * Expected result: The handler should NOT be called after the wait.
  *****************************************************************************/
 TEST_F(SignalTest, WainAndContinue)
 {
@@ -190,4 +162,35 @@ TEST_F(SignalTest, WainAndContinue)
     Signal::set_alarm(1);
     Signal::wait_and_continue(SIGALRM);
     EXPECT_EQ(g_sig, 0);
+}
+
+
+/******************************************************************************
+ * AUXILIARY FUNCTIONS
+ *****************************************************************************/
+void add_handler (int signal)
+{
+    g_sig += signal;
+}
+
+void BlockInHandler_handler_first (int signal)
+{
+    Signal::kill(getpid(), SIGUSR2);
+
+    EXPECT_EQ(g_sig, 0);
+
+    Signal::kill(getpid(), SIGINT);
+
+    EXPECT_EQ(g_sig, 0);
+}
+
+void BlockInHandler_handler_second (int signal)
+{
+    Signal::kill(getpid(), SIGUSR2);
+
+    EXPECT_EQ(g_sig, SIGUSR2);
+
+    Signal::kill(getpid(), SIGINT);
+
+    EXPECT_EQ(g_sig, SIGUSR2 + SIGINT);
 }

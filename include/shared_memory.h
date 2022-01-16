@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <stdio.h>
 #include "tools.h"
+#include <stdexcept>
 
 template <class arg_t>
 class SharedMemory
@@ -37,7 +38,8 @@ public:
 /******************************************************************************
  *  @brief:     Crea o instancia una shared memory: un espacio de memoria compartible
  *              entre procesos. Se representa como un puntero del tipo <arg_t>, de
- *              tamaño size.
+ *              tamaño size. No puede ser un puntero del tipo char[20], pero si una
+ *              struct con un char[20] dentro.
  *              **IMPORTANTE** Liberar recursos con free().
  * 
  *  @arg:       <arg_t>: El tipo de dato, puede ser cualquiera.
@@ -50,7 +52,7 @@ public:
  * 
  *              id: forma de identificar inequívocamente a una shared memory.
  * 
- *  @return:    None.
+ *  @return:    Levanta una excepción con el valor de std::runtime_error si error.
  * ***************************************************************************/
 template <class arg_t>
 SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
@@ -59,15 +61,15 @@ SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
     if ( (key = ftok(path, id) ) == -1)
     {
         perror( ERROR("Couldn't create shared memory with ftok.\n"));
-        return;
+        throw(std::runtime_error("ftok"));
     }
 
     if (size)   // Create new
     {
-        if( (this->shmid = shmget(key, (size_t)size*sizeof(arg_t), IPC_CREAT | 0666) ) == -1)
+        if( (this->shmid = shmget(key, (size_t)size*sizeof(arg_t), IPC_CREAT | IPC_EXCL | 0666) ) == -1)
         {
             perror(ERROR("Couldn't create shared memory with shmget.\n"));
-            return;
+            throw(std::runtime_error("shmget"));
         }
     }
 
@@ -76,7 +78,7 @@ SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
         if( (this->shmid = shmget(key, 0, 0) ) == -1)
         {
             perror(ERROR("Shmget: shared_memory doesn't exist.\n"));
-            return;
+            throw(std::runtime_error("shmget"));
         }
     }
     
@@ -84,7 +86,7 @@ SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
     if ( (this->shmaddr = (arg_t*) shmat(this->shmid, NULL, 0)) == (arg_t*) -1)
     {
         perror(RED("Couldn't attach pointer to shared memory with shmaddr.\n"));
-        return;
+        throw(std::runtime_error("shmat"));
     }
 
 }

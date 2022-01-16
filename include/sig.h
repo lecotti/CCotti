@@ -17,7 +17,7 @@ int block(int signal);
 int unblock(int signal);
 int unblock_all(void);
 int kill (pid_t pid, int signal);
-int send_signal (pid_t pid, int signal);
+int kill (pthread_t thread_id, int signal);
 int set_alarm(int time);
 int wait_and_handle (int signal);
 int wait_and_continue (int signal);
