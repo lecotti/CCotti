@@ -1,5 +1,5 @@
 # CCotti
-Librería de C++ que sirve como API para implementar IPCs POSIX V, signals, sockets y pthreads de C.
+Librería de C++ que sirve como API para implementar IPCs System V, signals, sockets y pthreads de C.
 
 ## Instalación
 Agregar en el `CMakeLists.txt` de tu proyecto:
