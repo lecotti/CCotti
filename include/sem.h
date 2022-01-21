@@ -6,6 +6,7 @@
 #include <sys/sem.h>
 #include <stdio.h>
 #include "tools.h"
+#include <stdexcept>
 
 class Sem
 {
@@ -14,15 +15,13 @@ private:
     int sem_qtty;
 
 public:
-    Sem(int sem_qtty, const char* path, int id);
+    Sem(const char* path, int id, bool create=false);
+    static bool exists(const char* path, int id);
 
-    int set_value (int value);
-    int set_value (int value, int semnum);
-
-    int get_value (int semnum=0);
+    int set(int value);
+    int get() const;
 
     int op (int op);
-    int op (int op, int semnnum);
 
     int free(void);
 
@@ -30,7 +29,7 @@ public:
     int operator++ ();
     int operator-- (int);
     int operator-- ();
-    void operator= (int a);
+    int operator= (int a);
     int operator+ (int a);
     int operator- (int a);
 

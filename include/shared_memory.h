@@ -85,7 +85,7 @@ SharedMemory<arg_t>::SharedMemory(const char* path, int id, int size)
 
     if ( (this->shmaddr = (arg_t*) shmat(this->shmid, NULL, 0)) == (arg_t*) -1)
     {
-        perror(RED("Couldn't attach pointer to shared memory with shmaddr.\n"));
+        perror(ERROR("Couldn't attach pointer to shared memory with shmaddr.\n"));
         throw(std::runtime_error("shmat"));
     }
 

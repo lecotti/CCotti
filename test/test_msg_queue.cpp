@@ -174,6 +174,11 @@ TEST(MsgQueueTest, QttyTest)
     EXPECT_EQ(queue.get_msg_qtty(), -1);
 }
 
+/******************************************************************************
+ * Being tested: read() 
+ * 
+ * Expected result: reading depends on mtype value.
+ *****************************************************************************/
 TEST(MsgQueueTest, Priority)
 {
     MsgQueue<int> queue(".", 2, true);

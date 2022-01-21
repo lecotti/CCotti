@@ -1,108 +1,108 @@
 #include "sem.h"
 
 /******************************************************************************
- *  @brief:     Crea varios semáforos con un valor inicial.
+ *  @brief:     Crea un semáforo con valor inicial 1. La forma de operarlo es:
+ *              para bloquear sem--. Para liberar sem++.
  * 
- *  @arg:       sem_qtty: Cantidad de semáforos a crear.
- * 
- *              init_value: valor inicial de los semáforos.
+ *  @arg:       init_value: valor inicial de los semáforos.
  * 
  *              path: path a un archivo. Necesario para identificar inequívoca-
  *              mente al set de semáforos.
  * 
  *              id: Identifica inequívocamente al set de semáforos.
  * 
- *  @return:    None.
+ *  @return:    Throws "std::runtime_error" en caso de error.
  * ***************************************************************************/
-Sem::Sem(int sem_qtty, const char* path, int id): sem_qtty(sem_qtty)
+Sem::Sem(const char* path, int id, bool create): sem_qtty(sem_qtty)
 {
     key_t key;
     
-    if ( (key = ftok(path, id) ) != -1)
+    if ( (key = ftok(path, id) ) == -1)
     {
-        if (sem_qtty)
-        {
-            if ( (this->semid = semget (key, sem_qtty, IPC_CREAT | 0666) ) == -1 )
-            {
-                perror(RED("Semget.\n"));
-                return;
-            }
+        perror(ERROR("Couldn't get semaphore with ftok.\n"));
+        throw(std::runtime_error("Ftok"));
+    }
 
-            if (this->set_value(1) == -1)
-            {
-                perror(RED("Setting sem values.\n"));
-                return;
-            }
+    if (create)
+    {
+        if ( (this->semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0666) ) == -1 )
+        {
+            perror(ERROR("Couldn't create semaphore with semget.\n"));
+            throw(std::runtime_error("Semget"));
         }
 
-        else
+        if (this->set(1) != 0)
         {
-            if ( (this->semid = semget (key, 0, 0) ) == -1 )
-            {
-                perror(RED("Semget.\n"));
-                return;
-            }
+            perror(ERROR("Setting sem values.\n"));
+            throw(std::runtime_error("Set_value"));
         }
-        
     }
 
     else
     {
-        perror(RED("Ftok.\n"));
-        return;
-    }
+        if ( (this->semid = semget(key, 0, 0) ) == -1 )
+        {
+            perror(ERROR("Couldn't connect to existing semaphore.\n"));
+            throw(std::runtime_error("Semget"));
+        }
+    } 
 }
 
 /******************************************************************************
- *  @brief:     Setea el valor de TODOS los semáforos a un valor específico.
+ *  @brief:     Chequea si el semáforo existo
  * 
- *  @arg:       value: El valor que tomará el semáforo. 
+ *  @arg:       path: path a un archivo. Necesario para identificar inequívoca-
+ *              mente al set de semáforos.
  * 
- *              semnum: El número de semáforo.
+ *              id: Identifica inequívocamente al set de semáforos.
  * 
- *  @return:    "0" en éxtio, "-1" en error.
+ *  @return:    Throws "std::runtime_error" en caso de error.
  * ***************************************************************************/
-int Sem::set_value (int value)
+bool Sem::exists(const char* path, int id)
 {
-    unsigned short array [this->sem_qtty];
-
-    for (int i = 0; i < this->sem_qtty; i++)
+    key_t key;
+    if ( (key = ftok(path, id) ) == -1)
     {
-        array[i] = value;
+        return false;
     }
 
-    return semctl(this->semid, 0, SETALL, array);
+    if ( (semget(key, 0, 0) ) == -1 )
+    {
+        return false;
+    }
+
+    return true;
+
 }
 
 /******************************************************************************
- *  @brief:     Setea el valor de UNO de los semáforos a un valor específico.
+ *  @brief:     Setea el valor del semáforo a un valor específico.
  * 
  *  @arg:       value: El valor que tomará el semáforo. 
  * 
- *              semnum: El número de semáforo.
- * 
  *  @return:    "0" en éxtio, "-1" en error.
  * ***************************************************************************/
-int Sem::set_value (int value, int semnum)
+int Sem::set (int value)
 {
-    return semctl(this->semid, semnum, SETVAL, value);
+    return semctl(this->semid, 0, SETVAL, value);
 }
 
 /******************************************************************************
  *  @brief:     Devuelve el valor que tiene el semáforo.
  * 
- *  @arg:       semnum: el número de semáforo.
+ *  @arg:       Void.
  * 
  *  @return:    EL valor que tiene el semáforo, o "-1" en error.
  * ***************************************************************************/
-int Sem::get_value (int semnum)
+int Sem::get(void) const
 {
-    return semctl(this->semid, semnum, GETVAL);
+    return semctl(this->semid, 0, GETVAL);
 }
 
 /******************************************************************************
- *  @brief:     Realiza una operación sobre TODOS los semáforos. Hay tres op. definidas:
- * 
+ *  @brief:     Realiza una operación sobre UNO de los semáforos del set. Hay
+ *              tres operaciones posibles:
+ *              
  *              op = 0 : El proceso bloquea hasta que el valor del semáforo sea
  *              exactamente cero.
  * 
@@ -118,32 +118,9 @@ int Sem::get_value (int semnum)
  * ***************************************************************************/
 int Sem::op (int op)
 {
-    struct sembuf sop[this->sem_qtty];
-
-    for (int i = 0; i < this->sem_qtty; i++)
-    {
-        sop[i].sem_num = i;
-        sop[i].sem_op = op;
-        sop[i].sem_flg = 0;
-    }
-
-    return semop(this->semid, sop, this->sem_qtty);
-}
-
-/******************************************************************************
- *  @brief:     Realiza una operación sobre UNO de los semáforos del set.
- * 
- *  @arg:       op: EL valor de la operación.
- * 
- *              semnum: El núemro de semáforo.
- * 
- *  @return:    "0" en éxito, "-1" en error.
- * ***************************************************************************/
-int Sem::op (int op, int semnum)
-{
     struct sembuf sop;
 
-    sop.sem_num = semnum;
+    sop.sem_num = 0;
     sop.sem_op = op;
     sop.sem_flg = 0;
 
@@ -164,79 +141,80 @@ int Sem::free(void)
 }
 
 /******************************************************************************
- *  @brief:     Le suma "+1" a TODOS los semáforos.
+ *  @brief:     Le suma "+1" al semáforo.
  * 
  *  @arg:       Void.
  * 
- *  @return:    El valor que le queda a los semáforos en éxito, "-1" en error.
+ *  @return:    El valor que le queda al semáforos en éxito, "-1" en error.
  * ***************************************************************************/
 int Sem::operator++ (int)
 {
     this->op(1);
-    return this->get_value();
+    return this->get();
 }
 
 int Sem::operator++ ()
 {
     this->op(1);
-    return this->get_value();
+    return this->get();
 }
 
 /******************************************************************************
- *  @brief:     Le resta "1" a TODOS los semáforos.
+ *  @brief:     Le resta "1" al semáforo.
  * 
  *  @arg:       Void.
  * 
- *  @return:    El valor que le queda a los semáforos en éxito, "-1" en error.
+ *  @return:    El valor que le queda al semáforo en éxito, "-1" en error.
  * ***************************************************************************/
 int Sem::operator-- (int)
 {
     this->op(-1);
-    return this->get_value();
+    return this->get();
 }
 
 int Sem::operator-- ()
 {
     this->op(1);
-    return this->get_value();
+    return this->get();
 }
 
 /******************************************************************************
- *  @brief:     Setea el valor de TODOS los semáforos.
+ *  @brief:     Setea el valor del semáforo.
  * 
- *  @arg:       Void.
+ *  @arg:       El valor que tendŕa el semáforo.
  * 
  *  @return:    Void.
  * ***************************************************************************/
-void Sem::operator= (int a)
+int Sem::operator= (int a)
 {
-    this->set_value(a);
+    this->set(a);
+    return this->get();
 }
 
 /******************************************************************************
- *  @brief:     Le suma "+1" al semáforo "a" del set.
+ *  @brief:     Le suma una cantidad arbitraria al semáforo.
  * 
- *  @arg:       a: el número de semáforo dentro del set.
+ *  @arg:       a: el número a sumarle.
  * 
  *  @return:    El valor del semáforo en éxito, "-1" en error.
  * ***************************************************************************/
 int Sem::operator+ (int a)
 {
-    this->op(1, a);
-    return this->get_value(a);
+    this->op(a);
+    return this->get();
 }
 
 /******************************************************************************
- *  @brief:     Le resta "1" al semáforo "a" del set.
+ *  @brief:     Le resta una cantidad al semáforo.
  * 
- *  @arg:       a: el número de semáforo dentro del set.
+ *  @arg:       a: el número a restarle
  * 
  *  @return:    El valor del semáforo en éxito, "-1" en error.
  * ***************************************************************************/
 int Sem::operator- (int a)
 {
-    this->op(-1, a);
-    return this->get_value(a);
+    this->op(-a);
+    return this->get();
 }
 
  

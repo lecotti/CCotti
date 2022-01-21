@@ -1,9 +1,10 @@
 ###############################################################################
 #   Initialization + Gtest include
 ###############################################################################
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.16)
 project(CCotti)
 set(CMAKE_CXX_STANDARD 11)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -18,12 +19,10 @@ FetchContent_MakeAvailable(googletest)
 add_subdirectory(src)
 add_subdirectory(test)
 
-
 ###############################################################################
-#   Build
+#   Install
 ###############################################################################
-
-
+install(TARGETS ipc_lib DESTINATION ${CMAKE_SOURCE_DIR}/lib)
 
 ###############################################################################
 #   Testing
@@ -34,6 +33,7 @@ add_executable(
   ipc_testing
   ${TEST_SRC}
 )
+
 target_link_libraries(
   ipc_testing
   gtest_main

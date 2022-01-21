@@ -1,6 +1,5 @@
 #include "mutex.h"
 
-
 /******************************************************************************
  *  @brief:     Crea una variable mutex.
  * 
@@ -77,7 +76,7 @@ int Mutex::trylock(void)
  * 
  *  @arg:       Void.
  * 
- *  @return:    "0" en éxito, "-1" en error.
+ *  @return:    None.
  * ***************************************************************************/
 Mutex::~Mutex(void)
 {
