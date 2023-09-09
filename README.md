@@ -12,8 +12,10 @@ target_link_libraries(<target_name> "${path}/Ccotti/lib/libipc_lib.a")
 Para ejemplos de uso, revisar la carpeta "test". Para ver las explicaciones de cada función, revisar los archivos dentro de "src". Para ver los prototipos de las funciones, revisar "include".
 
 ## Compilación y testeo
+
 ```
 $ cd build
+$ cmake ..
 $ cmake --build .
 $ ctest --verbose
 $ cmake --install . --prefix "$(pwd)/../install"
