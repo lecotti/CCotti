@@ -18,9 +18,9 @@ public:
     ~Sem();
     static bool exists(const char* path, int id);
 
-    char set(int value);
-    char get() const;
-    char op (int op);
+    int set(int value);
+    int get() const;
+    int op (int op);
 
     int operator++ (int);
     int operator++ ();

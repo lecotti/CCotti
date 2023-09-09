@@ -56,12 +56,12 @@ bool Sem::exists(const char* path, int id) {
 
 /// @brief Sets the semaphore's "semval" to a specific value.
 /// @return "0" on success, "-1" on error.
-char Sem::set (int value) {
+int Sem::set (int value) {
     return semctl(this->semid, 0, SETVAL, value);
 }
 
 /// @brief Returns the value of the semaphore.
-char Sem::get(void) const {
+int Sem::get(void) const {
     return semctl(this->semid, 0, GETVAL);
 }
 
@@ -73,7 +73,7 @@ char Sem::get(void) const {
 ///           subtracted from "semval", with the end result a positive number or "0".
 /// @param op Operation value.
 /// @return "0" on success, "-1" on error.
-char Sem::op (int op) {
+int Sem::op (int op) {
     struct sembuf sop;
     sop.sem_num = 0;
     sop.sem_op = op;

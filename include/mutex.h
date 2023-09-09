@@ -10,9 +10,9 @@ private:
     pthread_mutex_t mutex;
 public:
     Mutex();
-    char lock(void);
-    char trylock(void);
-    char unlock(void);
+    int lock(void);
+    int trylock(void);
+    int unlock(void);
     ~Mutex();
 };
 

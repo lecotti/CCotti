@@ -12,7 +12,7 @@ Mutex::~Mutex(void) {
 
 /// @brief Reserves the Mutex in a blocking manner.
 /// @return "0" on success, -1 on error.
-char Mutex::lock(void) {
+int Mutex::lock(void) {
     if (pthread_mutex_lock(&(this->mutex)) != 0) {
         perror(ERROR("Failed pthread_mutex_lock.\n"));
         return -1;
@@ -22,7 +22,7 @@ char Mutex::lock(void) {
 
 /// @brief Frees a Mutex variable.
 /// @return "0" on success, -1 on error.
-char Mutex::unlock(void) {
+int Mutex::unlock(void) {
     if (pthread_mutex_unlock(&(this->mutex)) != 0) {
         perror(ERROR("Failed pthread_mutex_unlock.\n"));
         return -1;
@@ -32,7 +32,7 @@ char Mutex::unlock(void) {
 
 /// @brief Tries to reserve the Mutex in a non-blocking manner.
 /// @return "0" on success, "-1" on error, or if the mutex was already reserved.
-char Mutex::trylock(void) {
+int Mutex::trylock(void) {
     if (pthread_mutex_trylock(&(this->mutex)) != 0) {
         return -1;
     }
