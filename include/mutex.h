@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include "tools.h"
 
-class Mutex
-{
+class Mutex {
 private:
     pthread_mutex_t mutex;
 public:
@@ -15,6 +14,6 @@ public:
     int trylock(void);
     int unlock(void);
     ~Mutex();
-}; 
+};
 
 #endif // MUTEX_H
