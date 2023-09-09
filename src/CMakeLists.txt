@@ -5,7 +5,6 @@ set(IPC_SRC
     "signal.cpp"
     "socket.cpp"
     "thread.cpp"
-    "tools.cpp"
     "mutex.cpp")
 
 

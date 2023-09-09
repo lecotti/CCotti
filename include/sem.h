@@ -8,22 +8,19 @@
 #include "tools.h"
 #include <stdexcept>
 
-class Sem
-{
+class Sem {
 private:
     int semid;
-    int sem_qtty;
+    bool creator;
 
 public:
     Sem(const char* path, int id, bool create=false);
+    ~Sem();
     static bool exists(const char* path, int id);
 
-    int set(int value);
-    int get() const;
-
-    int op (int op);
-
-    int free(void);
+    char set(int value);
+    char get() const;
+    char op (int op);
 
     int operator++ (int);
     int operator++ ();
@@ -32,7 +29,6 @@ public:
     int operator= (int a);
     int operator+ (int a);
     int operator- (int a);
-
 };
 
 #endif //SEM_H
