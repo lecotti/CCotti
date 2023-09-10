@@ -1,9 +1,5 @@
 #include "sig.h"
 
-/******************************************************************************
- * Signal management
-******************************************************************************/
-
 /// @brief Sets a signal handler for certain "signal"
 /// @param signal Signal number
 /// @param signal_handler Function to be called when the signal is received. Can be:
@@ -18,21 +14,21 @@
 int Signal::set_handler (int signal, void(*signal_handler)(int), int flags, int* signals_blocked_in_handler, int size) {
     sigset_t mask;
     struct sigaction sa;
-    if (sigemptyset (&mask) != 0) {
-        perror( ERROR("Couldn't configure signal handler with sigemptyset.\n"));
+    if (sigemptyset(&mask) != 0) {
+        perror(ERROR("sigemptyset in Signal::set_handler.\n"));
         return -1;
     }
     for (int i = 0; i < size; i++) {
         if (sigaddset(&mask, signals_blocked_in_handler[i]) != 0) {
-            perror( ERROR("Couldn't configure signals to block during handler with sigaddset.\n"));
+            perror(ERROR("sigaddset in Signal::set_handler.\n"));
             return -1;
         }
     }
     sa.sa_mask = mask;
     sa.sa_handler = signal_handler;
     sa.sa_flags = flags;
-    if (sigaction (signal, &sa, NULL) != 0) {
-        perror( ERROR("Couldn't configure signal handler with sigaction.\n"));
+    if (sigaction(signal, &sa, NULL) != 0) {
+        perror("sigaction in Signal::set_handler.\n");
         return -1;
     }
     return 0;
@@ -59,15 +55,15 @@ int Signal::set_default_handler(int signal) {
 int Signal::block(int signal) {
     sigset_t mask;
     if (sigemptyset(&mask) != 0) {
-        perror( ERROR("Couldn't block signal with sigemptyset.\n"));
+        perror(ERROR("sigemptyset in Signal::block.\n"));
         return -1;
     }
-    if ( sigaddset( &mask, signal) != 0) {
-        perror( ERROR("Couldn't block signal with sigaddset.\n"));
+    if (sigaddset(&mask, signal) != 0) {
+        perror(ERROR("sigaddset in Signal::block.\n"));
         return -1;
     }
     if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-        perror( ERROR("Couldn't block signal with pthread_sigmask.\n"));
+        perror((ERROR("pthread_sigmask in Signal::block.\n")));
         return -1;
     }
     return 0;
@@ -79,15 +75,15 @@ int Signal::block(int signal) {
 int Signal::unblock(int signal) {
     sigset_t mask;
     if (sigemptyset(&mask) != 0) {
-        perror( ERROR("Couldn't unblock signal with sigemptyset.\n"));
+        perror(ERROR("sigemptyset in Signal::unblock.\n"));
         return -1;
     }
-    if ( sigaddset( &mask, signal) != 0) {
-        perror( ERROR("Couldn't unblock signal with sigaddset.\n"));
+    if (sigaddset( &mask, signal) != 0) {
+        perror(ERROR("sigaddset in Signal::unblock.\n"));
         return -1;
     }
-    if ( pthread_sigmask(SIG_UNBLOCK, &mask, NULL) != 0) {
-        perror( ERROR("Couldn't unblock signal with pthread_sigmask.\n"));
+    if (pthread_sigmask(SIG_UNBLOCK, &mask, NULL) != 0) {
+        perror((ERROR("pthread_sigmask in Signal::unblock.\n")));
         return -1;
     }
     return 0;
@@ -97,12 +93,12 @@ int Signal::unblock(int signal) {
 /// @return "0" on success, "-1" on error.
 int Signal::unblock_all(void) {
     sigset_t mask;
-    if (sigemptyset(&mask ) != 0) {
-        perror( ERROR("Couldn't unblock all signals with sigemptyset.\n"));
+    if (sigemptyset(&mask) != 0) {
+        perror(ERROR("sigemptyset in Signal::unblock_all.\n"));
         return -1;
     }
     if (pthread_sigmask(SIG_SETMASK, &mask, NULL) != 0) {
-        perror( ERROR("Couldn't unblock all signals with pthread_sigmask.\n"));
+        perror((ERROR("pthread_sigmask in Signal::unblock_all.\n")));
         return -1;
     }
     return 0;
@@ -113,8 +109,8 @@ int Signal::unblock_all(void) {
 /// @param signal Signal number
 /// @return "0" on success, "-1" on error.
 int Signal::kill (pid_t pid, int signal) {
-    if (::kill(pid, signal) != 0){
-        perror( ERROR("Couldn't send signal to process.\n"));
+    if (::kill(pid, signal) != 0) {
+        perror(ERROR("kill in Signal::kill.\n"));
         return -1;
     }
     return 0;
@@ -126,7 +122,7 @@ int Signal::kill (pid_t pid, int signal) {
 /// @return "0" on success, "-1" on error.
 int Signal::kill (pthread_t thread_id, int signal) {
     if (pthread_kill(thread_id, signal) != 0) {
-        perror( ERROR("Couldn't send signal to thread.\n"));
+        perror(ERROR("pthread_kill in Signal::kill.\n"));
         return -1;
     }
     return 0;
@@ -139,11 +135,11 @@ int Signal::kill (pthread_t thread_id, int signal) {
 int Signal::wait (int signal) {
     sigset_t mask;
     if (sigfillset(&mask) != 0) {
-        perror( ERROR("Couldn't start waiting for signal with sigfillset.\n"));
+        perror(ERROR("sigfillset in Signal::wait.\n"));
         return -1;
     }
     if (sigdelset(&mask, signal) != 0) {
-        perror( ERROR("Couldn't start waiting for signal with sigdelset.\n"));
+        perror(ERROR("sigdelset in Signal::wait.\n"));
         return -1;
     }
     sigsuspend(&mask); // Always returns -1 for signal interruption.
@@ -157,15 +153,15 @@ int Signal::wait_and_ignore (int signal) {
     sigset_t mask;
     int sig_return = 0;
     if (sigemptyset(&mask) != 0) {
-        perror( ERROR("Couldn't start waiting for signal with sigemptyset.\n"));
+        perror(ERROR("sigemptyset in Signal::wait_and_ignore.\n"));
         return -1;
     }
     if (sigaddset(&mask, signal) != 0) {
-        perror( ERROR("Couldn't start waiting for signal with sigaddset.\n"));
+        perror(ERROR("sigaddset in Signal::wait_and_ignore.\n"));
         return -1;
     }
     if (sigwait(&mask, &sig_return) != 0) {
-        perror( ERROR("Something happened while waiting for the signal with sigwait.\n"));
+        perror(ERROR("sigwait in Signal::wait_and_ignore.\n"));
         return -1;
     }
     return 0;
@@ -176,40 +172,38 @@ int Signal::wait_and_ignore (int signal) {
 ******************************************************************************/
 
 /// @brief Sends SIGALRM to this same thread after "msec" milliseconds have
-///  passed, only once.
+///  passed, only once. Always succeeds.
 /// @param msec Time in miliseconds.
 /// @return "0" on success, "-1" on error.
-int Signal::set_timer_single_shot(time_t msec) {
+void Signal::set_timer_single_shot(time_t msec) {
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = msec / 1000;
     timer.it_value.tv_usec = (msec*1000) % 1000000;
-    return setitimer(ITIMER_REAL, &timer, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);
 }
 
 /// @brief Sends SIGALRM to this same thread after "msec" milliseconds have
-///  passed, periodically
+///  passed, periodically. Always succeeds.
 /// @param msec Time in miliseconds.
-/// @return "0" on success, "-1" on error.
-int Signal::set_timer_periodic(time_t msec) {
+void Signal::set_timer_periodic(time_t msec) {
     struct itimerval timer;
     timer.it_interval.tv_sec = msec / 1000;
     timer.it_interval.tv_usec = (msec*1000) % 1000000;
     timer.it_value.tv_sec = timer.it_interval.tv_sec;
     timer.it_value.tv_usec = timer.it_interval.tv_usec;
-    return setitimer(ITIMER_REAL, &timer, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);
 }
 
-/// @brief Disarm timer.
-/// @return "0" on success, "-1" on error.
-int Signal::unset_timer(void) {
+/// @brief Disarm timer. Always succeeds.
+void Signal::unset_timer(void) {
     struct itimerval timer;
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
     timer.it_value.tv_sec = 0;
     timer.it_value.tv_usec = 0;
-    return setitimer(ITIMER_REAL, &timer, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);
 }
 
 /// @brief Return amount of time remaining in the timer, in milliseconds.

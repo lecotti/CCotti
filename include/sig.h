@@ -17,11 +17,11 @@ namespace Signal {
     int unblock_all(void);
     int kill (pid_t pid, int signal);
     int kill (pthread_t thread_id, int signal);
-    int set_timer_single_shot(time_t msec);
-    int set_timer_periodic(time_t msec);
-    int unset_timer(void);
     int wait (int signal);
     int wait_and_ignore (int signal);
+    void set_timer_single_shot(time_t msec);
+    void set_timer_periodic(time_t msec);
+    void unset_timer(void);
     time_t get_timer_time(void);
 } // namespace Signal
 
