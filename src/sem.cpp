@@ -11,23 +11,21 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
     key_t key;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror(ERROR("Couldn't get semaphore with ftok.\n"));
-        throw(std::runtime_error("Ftok"));
+        perror(ERROR("ftok in Sem::Sem.\n"));
+        throw(std::runtime_error("ftok"));
     }
-
     if (create) {
         if ( (this->semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0666) ) == -1 ) {
-            perror(ERROR("Couldn't create semaphore with semget.\n"));
-            throw(std::runtime_error("Create"));
+            perror(ERROR("semget in Sem::Sem.\n"));
+            throw(std::runtime_error("semget"));
         }
         if (this->set(1) != 0) {
-            perror(ERROR("Couldn't set semaphore value.\n"));
-            throw(std::runtime_error("Set_value"));
+            throw(std::runtime_error("set"));
         }
     } else {
         if ( (this->semid = semget(key, 0, 0) ) == -1 ) {
-            perror(ERROR("Couldn't connect to existing semaphore.\n"));
-            throw(std::runtime_error("Connect"));
+            perror(ERROR("semget in Sem::Sem.\n"));
+            throw(std::runtime_error("semget"));
         }
     }
 }
@@ -36,7 +34,9 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
 ///  be able to remove it.
 Sem::~Sem(void) {
     if (this->creator && this->pid == gettid()) {
-        semctl(this->semid, 0, IPC_RMID);
+        if (semctl(this->semid, 0, IPC_RMID) == -1) {
+            perror(ERROR("semctl in Sem::~Sem.\n"));
+        }
     }
 }
 
@@ -57,13 +57,21 @@ bool Sem::exists(const char* path, int id) {
 
 /// @brief Sets the semaphore's "semval" to a specific value.
 /// @return "0" on success, "-1" on error.
-int Sem::set (int value) {
-    return semctl(this->semid, 0, SETVAL, value);
+int Sem::set (unsigned int value) {
+    if (semctl(this->semid, 0, SETVAL, (int) value) == -1) {
+        perror(ERROR("semctl in Sem::set.\n"));
+        return -1;
+    }
+    return 0;
 }
 
-/// @brief Returns the value of the semaphore.
+/// @brief Returns the value of the semaphore, or "-1" on error.
 int Sem::get(void) const {
-    return semctl(this->semid, 0, GETVAL);
+    int sem_val;
+    if ((sem_val = semctl(this->semid, 0, GETVAL)) == -1) {
+        perror(ERROR("semctl in Sem::get.\n"));
+    }
+    return sem_val;
 }
 
 /// @brief Realizes one of the following operations, depending on the argument "op":
@@ -79,7 +87,11 @@ int Sem::op (int op) {
     sop.sem_num = 0;
     sop.sem_op = op;
     sop.sem_flg = 0;
-    return semop(this->semid, &sop, 1);
+    if (semop(this->semid, &sop, 1) == -1) {
+        perror(ERROR("semop in Sem::op.\n"));
+        return -1;
+    }
+    return 0;
 }
 
 /******************************************************************************

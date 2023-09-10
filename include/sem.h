@@ -20,7 +20,7 @@ public:
     ~Sem();
     static bool exists(const char* path, int id);
 
-    int set(int value);
+    int set(unsigned int value);
     int get() const;
     int op (int op);
 
