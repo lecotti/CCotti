@@ -55,24 +55,24 @@ SharedMemory<data_t>::SharedMemory(const char* path, int id, size_t size) {
     key_t key;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror( ERROR("Couldn't create shared memory with ftok.\n"));
+        perror( ERROR("ftok in SharedMemory::SharedMemory.\n"));
         throw(std::runtime_error("ftok"));
     }
     if (size) {  // Create new
         this->creator = true;
         if( (this->shmid = shmget(key, (size_t)size*sizeof(data_t), IPC_CREAT | IPC_EXCL | 0666) ) == -1) {
-            perror(ERROR("Couldn't create shared memory with shmget.\n"));
+            perror(ERROR("shmget in SharedMemory::SharedMemory.\n"));
             throw(std::runtime_error("shmget"));
         }
     } else { // Connect to existing one
         this->creator = false;
         if( (this->shmid = shmget(key, 0, 0) ) == -1) {
-            perror(ERROR("Shmget: shared_memory doesn't exist.\n"));
+            perror(ERROR("shmget in SharedMemory::SharedMemory.\n"));
             throw(std::runtime_error("shmget"));
         }
     }
     if ( (this->shmaddr = (data_t*) shmat(this->shmid, NULL, 0)) == (data_t*) -1) {
-        perror(ERROR("Couldn't attach pointer to shared memory with shmaddr.\n"));
+        perror(ERROR("shmat in SharedMemory::SharedMemory.\n"));
         throw(std::runtime_error("shmat"));
     }
 }
@@ -80,9 +80,13 @@ SharedMemory<data_t>::SharedMemory(const char* path, int id, size_t size) {
 /// @brief Detaches pointer from shm. If you are the creator, destroy the shm.
 template <class data_t>
 SharedMemory<data_t>::~SharedMemory() {
-    shmdt( (void *) this->shmaddr); // Detach pointer
+    if (shmdt((void *) this->shmaddr) == -1) {
+        perror(ERROR("shmdt in SharedMemory::~SharedMemory.\n"));
+    }
     if (this->creator && this->pid == gettid()) {
-        shmctl(this->shmid, IPC_RMID, NULL); // Destroy shm
+        if (shmctl(this->shmid, IPC_RMID, NULL) == -1) {
+            perror(ERROR("shmctl in SharedMemory::~SharedMemory.\n"));
+        }
     }
 }
 
