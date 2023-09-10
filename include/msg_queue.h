@@ -54,34 +54,37 @@ MsgQueue<msg_t>::MsgQueue(const char* path, int id, bool create): creator(create
     int flags = (create) ? (IPC_CREAT | 0666) : 0;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror(ERROR("Couldn't create | get msgq with ftok.\n"));
+        perror(ERROR("ftok in MsgQueue::MsgQueue.\n"));
         throw(std::runtime_error("ftok"));
     }
     if (create) {
         if ( (this->msg_id = msgget(key, IPC_CREAT | IPC_EXCL | 0666) ) == -1) {
-            perror(ERROR("Couldn't create msgq with msgget.\n"));
+            perror(ERROR("msgget in MsgQueue::MsgQueue.\n"));
             throw(std::runtime_error("msgget"));
         }
     } else {
         if ( (this->msg_id = msgget(key, 0)) == -1 ) {
-            perror(ERROR("Couldn't connect to already existing msgq with msgget.\n"));
+            perror(ERROR("msgget in MsgQueue::MsgQueue.\n"));
             throw(std::runtime_error("msgget"));
         }
     }
 }
 
+/// @brief Destroy the queue only if you are the creator, and are in the same
+///  thread or proccess.
 template <class msg_t>
 MsgQueue<msg_t>::~MsgQueue(void) {
     if (this->creator && this->pid == gettid()) {
-        msgctl(this->msg_id, IPC_RMID, NULL);
+        if (msgctl(this->msg_id, IPC_RMID, NULL) == -1) {
+            perror(ERROR("msgctl in MsgQueue::~MsgQueue.\n"));
+        }
     }
 }
 
 /// @brief Checks if the message queue already exists.
 /// @return "true" if it exists, "false" otherwise.
 template <class msg_t>
-bool MsgQueue<msg_t>::exists(const char* path, int id)
-{
+bool MsgQueue<msg_t>::exists(const char* path, int id) {
     key_t key;
     if ( (key = ftok(path, id) ) == -1) {
         return false;
@@ -105,7 +108,7 @@ int MsgQueue<msg_t>::write(msg_t msg, long mtype) {
     sending_msg.mtype = mtype;
     sending_msg.msg = msg;
     if (msgsnd(this->msg_id, &sending_msg, (size_t) sizeof(msg_t), 0) == -1) {
-        perror(ERROR("Couldn't send msg with msgsnd.\n"));
+        perror(ERROR("msgsnd in MsgQueue::write.\n"));
         return -1;
     }
     return 0;
@@ -127,16 +130,15 @@ int MsgQueue<msg_t>::write(msg_t msg, long mtype) {
 ///  position fails immediately.
 /// @return The value returned from the message queue.
 template <class msg_t>
-msg_t MsgQueue<msg_t>::read(int mtype, int* status, int flags)
-{
+msg_t MsgQueue<msg_t>::read(int mtype, int* status, int flags) {
     struct msgbuf output;
-    int state = 0;
+    int error_state = 0;
     if( msgrcv(this->msg_id, &output, (size_t) sizeof(msg_t), (long) mtype, flags) == -1) {
-        state = errno;
-        perror(ERROR("Couldn't get a message from the queue with msgrcv.\n"));
+        error_state = errno;
+        perror(ERROR("msgrcv in MsgQueue::read.\n"));
     }
     if (status != NULL) {
-        *status = state;
+        *status = error_state;
     }
     return output.msg;
 }
@@ -157,7 +159,7 @@ template <class msg_t>
 int MsgQueue<msg_t>::get_msg_qtty(void) {
     struct msqid_ds info;
     if (msgctl(this->msg_id, MSG_STAT, &info) == -1) {
-        perror(ERROR("Couldn't check the aomunt of msgs in queue with msgctl.\n"));
+        perror(ERROR("msgctl in MsgQueue::get_msg_qtty.\n"));
         return -1;
     }
     return (int) info.msg_qnum;
