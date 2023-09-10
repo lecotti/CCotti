@@ -7,8 +7,7 @@
 #include "sig.h"
 #include <stdexcept>
 
-class Thread
-{
+class Thread {
 private:
   pthread_t id;
 
@@ -18,7 +17,7 @@ public:
   int join(void);
   int detach(void);
   int create (void* (*run)(void*), void* args=NULL, bool detached=false);
-  int kill(int signal);
+  int send_signal(int signal);
 };
 
 #endif //THREAD_H
