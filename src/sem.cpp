@@ -9,6 +9,7 @@
 /// @return Throws "std::runtime_error" in case of error.
 Sem::Sem(const char* path, int id, bool create): creator(create) {
     key_t key;
+    this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
         perror(ERROR("Couldn't get semaphore with ftok.\n"));
         throw(std::runtime_error("Ftok"));
@@ -34,7 +35,7 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
 /// @brief  Destroys the semaphore, free resources. Only the creator will be
 ///  be able to remove it.
 Sem::~Sem(void) {
-    if (this->creator) {
+    if (this->creator && this->pid == gettid()) {
         semctl(this->semid, 0, IPC_RMID);
     }
 }

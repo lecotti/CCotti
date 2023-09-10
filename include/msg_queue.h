@@ -41,7 +41,8 @@ public:
 
 /// @brief Creates a message queue.
 /// @tparam msg_t Type of the message to be passed along. Its size must be fixed
-///   and defined at compile time.
+///   and defined at compile time. Don't use fixed length arrays (char[20]),
+///   instead use structs like struct msg {char[20]}.
 /// @param path Can be any path. Identifier for the message queue.
 /// @param id Can be any number. Identifier for the message queue.
 /// @param create If "true", create the queue. If "false", connect to an
@@ -140,7 +141,7 @@ msg_t MsgQueue<msg_t>::read(int mtype, int* status, int flags)
     return output.msg;
 }
 
-/// @brief Returns a copy of a message in the queue, without poping it.
+/// @brief Returns a copy of a message in the queue, without popping it.
 /// @param index Position in the queue, starting with "0".
 /// @param status If "0", the value was retrieved successfully. If != 0, then
 ///  no message was found, and the value returned is junk.

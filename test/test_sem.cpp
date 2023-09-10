@@ -37,6 +37,7 @@ TEST(SemTest, WaitForZero) {
     } else {
         // Parent should be able to exit.
         wait(NULL);
+        EXPECT_TRUE(Sem::exists(".", 2));
         sem.op(0);
     }
 }
@@ -52,5 +53,6 @@ TEST(SemTest, Sync) {
     } else {
         sem = sem - 2;
         wait(NULL);
+        EXPECT_TRUE(Sem::exists(".", 2));
     }
 }

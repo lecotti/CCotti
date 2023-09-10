@@ -7,11 +7,13 @@
 #include <stdio.h>
 #include "tools.h"
 #include <stdexcept>
+#include <unistd.h>
 
 class Sem {
 private:
     int semid;
     bool creator;
+    pid_t pid;
 
 public:
     Sem(const char* path, int id, bool create=false);
