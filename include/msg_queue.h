@@ -182,17 +182,23 @@ bool MsgQueue<msg_t>::has_msg(void) {
  * Overloaded operators
 ******************************************************************************/
 
-/// @brief Sends a message with "mtype=1".
+/// @brief Sends a message with "mtype=1". Might throw "std::runtime_error".
 template <class msg_t>
 MsgQueue<msg_t>& MsgQueue<msg_t>::operator<<(msg_t msg) {
-    this->write(msg, 1);
+    if (this->write(msg, 1) == -1) {
+        throw(std::runtime_error("MsgQueue::operator<<"));
+    }
     return *this;
 }
 
-/// @brief Reads the first message on the queue. Doesn't check for errors. TODO
+/// @brief Reads the first message on the queue. Might throw "std::runtime_error".
 template <class msg_t>
 MsgQueue<msg_t>& MsgQueue<msg_t>::operator>>(msg_t& msg) {
-    msg = this->read();
+    int status;
+    msg = this->read(0, &status);
+    if (status != 0) {
+        throw(std::runtime_error("MsgQueue::operator>>"));
+    }
     return *this;
 }
 
