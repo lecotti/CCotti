@@ -152,7 +152,7 @@ void* mutex_run (void* arg)
 
 void* signal_run (void* arg)
 {
-    Signal::wait_and_continue(SIGUSR1);
+    Signal::wait_and_ignore(SIGUSR1);
     g_value++;
     return NULL;
 }
