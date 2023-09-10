@@ -20,7 +20,7 @@ Thread::Thread(void) {}
 /// @return "0" on success, "-1" on error.
 int Thread::create(void* (*run)(void*), void* args, bool detached) {
     if (pthread_create(&(this->id), NULL, run, args) != 0) {
-        perror(ERROR("Couldn't create thread with pthread_create.\n"));
+        perror(ERROR("pthread_create in Thread::create.\n"));
         return -1;
     }
     if (detached) {
@@ -33,7 +33,7 @@ int Thread::create(void* (*run)(void*), void* args, bool detached) {
 /// @return "0" on success, "-1" on error.
 int Thread::join(void) {
     if (pthread_join(id, NULL) != 0) {
-        perror(WARNING("Couldn't join thread with pthread_join. Maybe is detached?\n"));
+        perror(WARNING("pthread_join in Thread::join. Maybe detached?\n"));
         return -1;
     }
     return 0;
@@ -44,7 +44,7 @@ int Thread::join(void) {
 /// @return "0" on success, "-1" on error.
 int Thread::detach(void) {
     if (pthread_detach(this->id) != 0) {
-        perror(ERROR("Couldn't detach from thread.\n"));
+        perror(ERROR("pthread_detatch in Thread::detach.\n"));
         return -1;
     }
     return 0;
