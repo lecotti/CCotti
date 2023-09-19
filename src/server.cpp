@@ -20,6 +20,8 @@ void Server::start(int backlog) {
     Socket client_socket;
     struct sockaddr_storage client_addr;
     socklen_t addrlen = sizeof(struct sockaddr_storage);
+    int buff;
+
     if (listen(this->socket.get_sockfd(), backlog) != 0) {
         perror(ERROR("Couldn't start the server with listen.\n"));
         return;
@@ -34,7 +36,11 @@ void Server::start(int backlog) {
             client_socket.close();
             continue;
         }
-        if (!fork()) {
+        if ((buff = fork()) == -1) {
+            perror(ERROR("fork in Server::start. Failed to create child.\n"));
+            client_socket.close();
+            continue;
+        } else if (buff == 0) {
             this->on_accept(client_socket);
             client_socket.close();
             ::exit(0);
