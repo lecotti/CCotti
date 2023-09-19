@@ -8,70 +8,33 @@
 #include "sig.h"
 #include "tools.h"
 
-/******************************************************************************
- *  Abstract class. Se espera que el usuario herede de esta clase y:
- * 
- *      El constructor: llamando en la lista inicializadora al constructor de Server().
- *      El usuario puede crear tantas atributos de clase o métodos como quiera.
- * 
- *      on_accept(): Función que es llamada cada vez que se recibe la conexión de un
- *      nuevo cliente.
- * 
- *      on_quit(): Opcional. Esta función es llamada luego de que se reciba una nueva
- *      conexión y sea tratada por "on_accept()". El servidor seguirá funcionando 
- *      hasta que esta función retorne "true". Por defecto, "on_quit()" retorna
- *      siempre "false".
- *      
- *      El destructor (si lo necesita).
- *      
- * ***************************************************************************/
-class Server
-{
+/// @brief Abstract class. The user should inherit from this class and can:
+///  * Modify the constructor, as long as the parent constructor is called in the
+///  initializer list.
+///  * Define the on_accept() function to handle client connections.
+///  * Override the on_start() function to make something right before accepting connections.
+///  * Override the on_quit() function to make some cleanups after the server exits.
+///  The server stops execution after receiving a SIGINT.
+class Server {
 private:
     Socket socket;
 
 protected:
-    virtual void on_accept(Socket socket) = 0; 
-
-    virtual bool on_quit(void);
+    // Define this function to handle clients' connections.
+    virtual void on_accept(Socket& socket) = 0;
+    // Override this function to make something right before accepting connections,
+    // but the server is already up.
+    virtual void on_start(void) {};
+    // Override this function to make some cleanups after the server exits.
+    virtual void on_quit(void) {};
+    static void leave(int);
 
 public:
     Server(const char* ip, const char* port, int family=AF_UNSPEC, int socktype=SOCK_STREAM);
-
     void start(int backlog=20);
-
     Socket& get_socket(void);
+
+    static bool exit;
 };
 
 #endif //SERVER_H
-
-/******************************************************************************
- *  Example usage:
- * ***************************************************************************/
-/*
-class ExampleServer : public Server
-{
-protected:
-    int value;
-
-    void on_accept(Socket socket) override
-    {
-        int msg;
-        
-        socket >> msg;
-
-        this->value += msg;
-    }
-
-    bool on_quit(void) override
-    {
-        return (this->value == 10);
-    }
-
-public:
-    CreationServer(const char* ip, const char* port):Server(ip, port)
-    {
-        this->value = 0;
-    }
-};
-*/

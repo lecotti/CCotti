@@ -6,3 +6,8 @@ set(TEST_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/test_signal.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/test_thread.cpp"
     PARENT_SCOPE)
+
+set(TEST_INC
+    "${CMAKE_CURRENT_SOURCE_DIR}/inc"
+    PARENT_SCOPE
+)

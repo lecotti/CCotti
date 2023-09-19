@@ -34,6 +34,12 @@ add_executable(
   ${TEST_SRC}
 )
 
+target_include_directories(
+    ipc_testing
+    PUBLIC
+    "${TEST_INC}"
+)
+
 target_link_libraries(
   ipc_testing
   gtest_main

@@ -12,54 +12,39 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
-class Socket
-{
+class Socket {
 private:
     int sockfd;
     char my_ip [INET6_ADDRSTRLEN], peer_ip [INET6_ADDRSTRLEN];
     int my_port, peer_port;
-
-    char* get_my_ip(int sockfd, char* ip);
-    int get_my_port(int sockfd);
-
+    int get_ip_from_sockfd(int sockfd, char* ip);
+    int get_port_from_sockfd(int sockfd);
+    int get_ip_from_sockaddr(char* ip, struct sockaddr* sa);
+    int get_port_from_sockaddr(struct sockaddr* sa);
 
 public:
     Socket(const char* ip, const char* port, int family=AF_UNSPEC, int socktype=SOCK_STREAM, bool server=false);
-    Socket(int sockfd, struct sockaddr* addr);
     Socket(const Socket& socket);
     Socket();
-    void init (int sockfd, struct sockaddr* addr);
+    int init (int sockfd, struct sockaddr* addr);
+    static bool is_listening(const char* ip, const char* port, int family=AF_UNSPEC, int socktype=SOCK_STREAM);
+    void close(void);
+    ~Socket();
 
-    
     int write(void* msg, int len, int flags=0);
     int read(void* msg, int len, int flags=0);
 
     int get_sockfd(void) const;
-
-    char* get_peer_ip(char* ip) const;
-    char* get_peer_ip(void);
+    void get_peer_ip(char* ip) const;
     int get_peer_port(void) const;
-
-    char* get_my_ip(char* ip) const;
-    char* get_my_ip(void);
+    void get_my_ip(char* ip) const;
     int get_my_port(void) const;
-    
-    static char* get_ip(char* ip, struct sockaddr* sa);
-    static int get_port(struct sockaddr* sa);
 
-    int operator<< (const char* a);
-    int operator<< (int a);
-    int operator<< (char a);
-    int operator>> (int &a);
-    int operator>> (char &a);
-
-    void free(void);
-    void close(void);
-    ~Socket();
-
+    Socket& operator<< (const char* a);
+    Socket& operator<< (int a);
+    Socket& operator<< (char a);
+    Socket& operator>> (int &a);
+    Socket& operator>> (char &a);
 };
 
 #endif // SOCKET_H
-
-
-
