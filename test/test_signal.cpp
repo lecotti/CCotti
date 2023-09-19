@@ -131,16 +131,16 @@ TEST_F(SignalTest, WainAndIgnore) {
 /// @brief Tested: Signal::set_timer_periodic(), and also correct timing.
 TEST_F(SignalTest, TimerPeriodic) {
     Signal::set_handler(SIGALRM, addition_handler);
-    Signal::set_timer_periodic(10);
+    Signal::set_timer_periodic(30);
     bool three, two, one;
     for (uint8_t i = 0; i < 3; i++) {
         three=false; two=false; one = false;
         while(!(three && two && one && g_signal_value != SIGALRM*i) ) {
-            if(Signal::get_timer_time() > 6 && Signal::get_timer_time() < 9) {
+            if(Signal::get_timer_time() > 20 && Signal::get_timer_time() < 30) {
                 three = true;
-            } else if(Signal::get_timer_time() > 3 && Signal::get_timer_time() < 6) {
+            } else if(Signal::get_timer_time() > 10 && Signal::get_timer_time() < 20) {
                 two = true;
-            } else if(Signal::get_timer_time() > 0 && Signal::get_timer_time() < 3) {
+            } else if(Signal::get_timer_time() > 0 && Signal::get_timer_time() < 10) {
                 one = true;
             }
         }
