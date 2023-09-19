@@ -1,16 +1,8 @@
-#Add here any new .cpp file created that needs to be built and linked.
-set(IPC_SRC
-    "sem.cpp"
-    "server.cpp"
-    "signal.cpp"
-    "socket.cpp"
-    "thread.cpp"
-    "mutex.cpp")
+set(USER_SRC
+    "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
+    PARENT_SCOPE)
 
-
-add_library(ipc_lib ${IPC_SRC})
-
-target_include_directories(ipc_lib PUBLIC "${PROJECT_SOURCE_DIR}/include")
-
-target_compile_options(ipc_lib PUBLIC -pthread)
-target_link_options(ipc_lib PUBLIC -pthread)
+set(USER_INC
+    "${PROJECT_SOURCE_DIR}/include"
+    PARENT_SCOPE
+)
