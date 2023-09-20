@@ -22,20 +22,25 @@ void Server::start(int backlog) {
     socklen_t addrlen = sizeof(struct sockaddr_storage);
     int buff;
 
-    if (listen(this->socket.get_sockfd(), backlog) != 0) {
-        perror(ERROR("Couldn't start the server with listen.\n"));
-        return;
-    }
-    this->on_start();
+    this->backlog = backlog;
     while(!Server::exit) {
+        this->on_start();
+        if (listen(this->socket.get_sockfd(), this->backlog) != 0) {
+            perror(ERROR("Couldn't start the server with listen.\n"));
+            return;
+        }
         if ( (client_sockfd = accept(this->socket.get_sockfd(), (struct sockaddr*) &client_addr, &addrlen) ) == -1) {
-            perror(WARNING("Couldn't accept a connection from a client.\n"));
+            if (errno != EINTR) {
+                // The accept was NOT terminated by a signal
+                perror(WARNING("Couldn't accept a connection from a client.\n"));
+            }
             continue;
         }
         if (client_socket.init(client_sockfd, (struct sockaddr*) &client_addr) == -1) {
             client_socket.close();
             continue;
         }
+        this->on_new_client();
         if ((buff = fork()) == -1) {
             perror(ERROR("fork in Server::start. Failed to create child.\n"));
             client_socket.close();
