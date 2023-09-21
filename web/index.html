@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Temperatura</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0\">
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+</head>
+<body>
+    <h1>Backlog 10</h1>
+    <p id="backlog">0</p>
+    <p id="max_clients">0</p>
+    <p id="sensor_period">0</p>
+    <p id="samples_moving_average_filter">0</p>
+</body>
+<script>
+    var isRequestPending = false;
+    var req = new XMLHttpRequest();
+    var json;
+    req.onreadystatechange = serverHandler;
+    req.onerror = serverError;
+    var intervalID = setInterval(update, 1000);
+    update();
+
+    function update() {
+        req.open("GET", "http://localhost:3000/update", true);
+        req.send();
+    }
+
+    function serverHandler() {
+        if (isRequestPending === true) {
+            console.log("Request pending");
+            return;
+        }
+        if(req.readyState === 4) {
+            isRequestPending = false;
+            if (req.status === 200) {
+                console.log("Request responded");
+                console.log(req.responseText);
+                json = JSON.parse(req.responseText);
+                document.getElementById("backlog").textContent = json.backlog;
+                document.getElementById("max_clients").textContent = json.max_clients;
+                document.getElementById("sensor_period").textContent = json.sensor_period;
+                document.getElementById("samples_moving_average_filter").textContent = json.samples_moving_average_filter;
+            }
+        }
+    };
+
+    function serverError() {
+        clearInterval(intervalID);
+        alert("Connection lost with the server!")
+    }
+</script>
+</html>

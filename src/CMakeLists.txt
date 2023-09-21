@@ -1,5 +1,6 @@
 set(USER_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/httpserver.cpp"
     PARENT_SCOPE)
 
 set(USER_INC

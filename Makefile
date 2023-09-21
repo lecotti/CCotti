@@ -22,6 +22,10 @@ endif
 compile: ## Compile binaries
 	cmake --build ./build
 
+.PHONY: exe
+exe: ./build/user_code
+	./build/user_code
+
 .PHONY: test
 test: compile ## Test and compile code, with added verbosity.
 	ctest --verbose --test-dir ./build

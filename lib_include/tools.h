@@ -12,6 +12,6 @@
 #define DEBUG(str)      MAGENTA("[ DEBUG ] " str)
 #define ERROR(str)      RED("[ ERROR ] " str)
 #define WARNING(str)    YELLOW("[ WARNING ] " str)
-#define INFO(str)       CYAN("[ INFO ] " str)
+#define INFO(str)       CYAN("[ INFO ] ") str
 
 #endif //TOOLS_H

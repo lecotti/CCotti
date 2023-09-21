@@ -1,6 +1,7 @@
 #include "main.h"
 
 int main(void) {
-    printf("Hola\n");
+    HttpServer server("localhost", "3000", "config.cfg");
+    server.start();
     return 0;
 }
