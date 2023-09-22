@@ -9,9 +9,10 @@
 #define MAGENTA(str)        "\x1b[35m" str RESET
 #define CYAN(str)           "\x1b[36m" str RESET
 
-#define DEBUG(str)      MAGENTA("[ DEBUG ] " str)
-#define ERROR(str)      RED("[ ERROR ] " str)
-#define WARNING(str)    YELLOW("[ WARNING ] " str)
+#define OK(str)         GREEN("[ OK ] ") str
+#define DEBUG(str)      MAGENTA("[ DEBUG ] ") str
+#define ERROR(str)      RED("[ ERROR ] ") str
+#define WARNING(str)    YELLOW("[ WARNING ] ") str
 #define INFO(str)       CYAN("[ INFO ] ") str
 
 #endif //TOOLS_H
