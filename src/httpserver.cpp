@@ -52,6 +52,7 @@ void HttpServer::on_accept(Socket& socket) {
     HttpRequest req;
     HttpResponse res;
     while(this->request(socket, &req) == 0) {
+        res = this->not_found();
         if (req.method == GET) {
             if (strcmp(req.route, "/") == 0) {
                 strcpy(res.route, "/index.html");
@@ -75,8 +76,6 @@ void HttpServer::on_accept(Socket& socket) {
                 res.mime_type = JSON;
                 res.code = OK;
                 res.conn = CLOSE;
-            } else {
-                res = this->not_found();
             }
         } else if (req.method == POST) {
             if (strcmp(req.route, "/dc") == 0) {
@@ -84,8 +83,6 @@ void HttpServer::on_accept(Socket& socket) {
                     this->shm[0].client_count--;
                 }
                 continue;
-            } else {
-                res = this->not_found();
             }
         }
         this->response(socket, res);
