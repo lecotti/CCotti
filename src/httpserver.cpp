@@ -1,54 +1,95 @@
 #include "httpserver.h"
 
+/******************************************************************************
+ * Static variables
+******************************************************************************/
+
+/// @brief Changed when SIGUSR1 is received. Tells the server to re-read the
+///  configuration file.
 bool HttpServer::flag_update_conf = true;
-Sem HttpServer::sem(".", 2, true);
 
-int counter = 0;
+/******************************************************************************
+ * Functions
+******************************************************************************/
 
-// TODO: los valores de backlog, max_clients, etc
-// se clonan para los hijos, y al actualizarlos el servidor no los cambia para los hijos.
-// Esos valores deberían leerse desde una shared memory.
-
+/// @brief Initializes the server
+/// @param ip Server IP (0.0.0.0 by default)
+/// @param port Server port (http = tcp/80 by default).
+/// @param config_file Configuration file (config.cfg by default). Its content
+///  are read when the signal SIGUSR1 is received.
 HttpServer::HttpServer(const char* ip, const char* port, const char* config_file):
-    Server(ip, port) {
-    this->backlog = 0;
-    this->max_clients = 0;
-    this->sensor_period = 0;
-    this->samples_moving_average_filter = 0;
-    this->client_count = 0;
+    Server(ip, port), shm(".", 123, 1) {
+    char my_ip[INET6_ADDRSTRLEN];
+    serverData data {
+        .backlog = 0,
+        .max_clients = 0,
+        .sensor_period = 0,
+        .samples_moving_average_filter = 0,
+        .client_count = 0,
+    };
+    shm << data;
     strncpy(this->config_file, config_file, sizeof(this->config_file));
     Signal::set_handler(SIGUSR1, HttpServer::sigusr1_handler);
-    Signal::set_handler(SIGUSR2, HttpServer::sigusr2_handler);
-    printf(INFO("My PID: %d.\n"), getpid());
-}
-
-/// @brief When SIGUSR1 is received, the server will update its parameters
-///  from the configuration file.
-void HttpServer::sigusr1_handler(int signal) {
-    HttpServer::flag_update_conf = true;
-}
-
-void HttpServer::sigusr2_handler(int signal) {
-    //this->flag_client_dc++;
-    //sem--;
-    //printf(INFO("Client count: %d\n"), --client_count);
-    //sem++;
+    this->get_socket().get_my_ip(my_ip);
+    printf(OK("Server PID: %d.\n") OK("Server IP: %s\n") OK("Server port: %d\n"),
+        getpid(), my_ip, this->get_socket().get_my_port());
 }
 
 /// @brief Before listening or accepting new connections:
-///  * Check if the configuration file needs to be updated (SIGUSR1 should )
+///  * Check if the configuration file needs to be updated (SIGUSR1 should
+///    interrupt the "accept" syscall).
 void HttpServer::on_start(void) {
     if (HttpServer::flag_update_conf) {
         HttpServer::flag_update_conf = false;
         this->update_configuration();
     }
-    printf(DEBUG("Hola %d %d\n"), counter++, getpid());
 }
 
-void HttpServer::on_new_client(void) {
-    //sem--;
-    //printf(INFO("Client count: %d\n"), ++client_count);
-    //sem++;
+/// @brief This functions reads a request, and then sends a response, until
+///  the socket closes.
+/// @param socket The client socket.
+void HttpServer::on_accept(Socket& socket) {
+    HttpRequest req;
+    HttpResponse res;
+    while(this->request(socket, &req) == 0) {
+        if (req.method == GET) {
+            if (strcmp(req.route, "/") == 0) {
+                strcpy(res.route, "/index.html");
+                res.mime_type = HTML;
+                res.code = OK;
+                res.conn = CLOSE;
+                this->shm[0].client_count++;
+            } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
+                strcpy(res.route, req.route);
+                res.mime_type = FAVICON;
+                res.code = OK;
+                res.conn = CLOSE;
+            } else if (strcmp(req.route, "/images/404.jpg") == 0) {
+                strcpy(res.route, req.route);
+                res.mime_type = JPG;
+                res.code = OK;
+                res.conn = CLOSE;
+            } else if (strcmp(req.route, "/update") == 0) {
+                sprintf(res.route, "{\"backlog\": %d, \"max_clients\": %d, \"sensor_period\": %d, \"samples_moving_average_filter\": %d, \"clients\": %d}",
+                    this->shm[0].backlog, this->shm[0].max_clients, this->shm[0].sensor_period, this->shm[0].samples_moving_average_filter, this->shm[0].client_count);
+                res.mime_type = JSON;
+                res.code = OK;
+                res.conn = CLOSE;
+            } else {
+                res = this->not_found();
+            }
+        } else if (req.method == POST) {
+            if (strcmp(req.route, "/dc") == 0) {
+                if(this->shm[0].client_count > 0) {
+                    this->shm[0].client_count--;
+                }
+                continue;
+            } else {
+                res = this->not_found();
+            }
+        }
+        this->response(socket, res);
+    }
 }
 
 /// @brief Process a HttpRequest.
@@ -57,21 +98,22 @@ void HttpServer::on_new_client(void) {
 /// @return "0" on success, "-1" on error.
 int HttpServer::request(Socket& socket, HttpRequest* req) {
     char client_msg[10000];
+    char client_msg_copy[10000];
+    char* hi;
     if (socket.read(client_msg, sizeof(client_msg)) > 0) {
-        printf("%s\n", client_msg);
-        strcpy(req->route, strtok(&(client_msg[strlen("GET ")]), " "));
+        // printf("%s\n", client_msg); // TODO remove
+        strcpy(client_msg_copy, client_msg);
+        hi = strtok(client_msg_copy, " ");
+        if (strcmp(hi, http_methods[GET]) == 0) {
+            req->method = GET;
+            strcpy(req->route, strtok(&(client_msg[strlen(http_methods[GET]) + 1]), " "));
+        } else if (strcmp(strtok(hi, " "), http_methods[POST]) == 0) {
+            req->method = POST;
+            strcpy(req->route, strtok(&(client_msg[strlen(http_methods[POST]) + 1]), " "));
+        }
         return 0;
     }
     return -1;
-}
-
-HttpResponse HttpServer::not_found(void) {
-    HttpResponse res;
-    strcpy(res.route, "/not_found.html");
-    strcpy(res.mime_type, "text/html; charset=utf-8");
-    res.http_code = 404;
-    strcpy(res.http_status, "Not Found");
-    return res;
 }
 
 void HttpServer::response(Socket& socket, HttpResponse res) {
@@ -96,60 +138,44 @@ void HttpServer::response(Socket& socket, HttpResponse res) {
         strcpy(buffer, res.route);
     }
     sprintf(rta,
-        "HTTP/1.1 %d %s\n"
+        "HTTP/1.1 %s\n"
         "Content-Length: %ld\n"
         "Content-Type: %s\n"
-        "Connection: Closed\n\n",
-        res.http_code, res.http_status, bytes_read, res.mime_type);
+        "Connection: %s\n\n",
+        http_codes[res.code], bytes_read, http_mime_types[res.mime_type], http_conns[res.conn]);
     header_size = strlen(rta);
     memcpy(&rta[header_size], buffer, bytes_read);
     socket.write(rta, header_size + bytes_read);
 }
 
-void HttpServer::on_accept(Socket& socket) {
-    HttpRequest req;
-    HttpResponse res;
-    while(this->request(socket, &req) == 0) {
-        if (strcmp(req.route, "/") == 0) {
-            strcpy(res.route, "/index.html");
-            strcpy(res.mime_type, "text/html; charset=utf-8");
-            res.http_code = 200;
-            strcpy(res.http_status, "OK");
-        } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
-            strcpy(res.route, req.route);
-            strcpy(res.mime_type, "image/x-icon");
-            res.http_code = 200;
-            strcpy(res.http_status, "OK");
-        } else if (strcmp(req.route, "/images/404.jpg") == 0) {
-            strcpy(res.route, req.route);
-            strcpy(res.mime_type, "image/jpg");
-            res.http_code = 200;
-            strcpy(res.http_status, "OK");
-        } else if (strcmp(req.route, "/update") == 0) {
-            sprintf(res.route, "{\"backlog\": %d, \"max_clients\": %d, \"sensor_period\": %d, \"samples_moving_average_filter\": %d}",
-                this->backlog, this->max_clients, this->sensor_period, this->samples_moving_average_filter);
-            strcpy(res.mime_type, "application/json; charset=utf-8");
-            res.http_code = 200;
-            strcpy(res.http_status, "OK");
-        } else {
-            res = this->not_found();
-        }
-        this->response(socket, res);
-    }
-    Signal::kill(getppid(), SIGUSR2);
+/// @brief When SIGUSR1 is received, the server will update its parameters
+///  from the configuration file.
+void HttpServer::sigusr1_handler(int signal) {
+    HttpServer::flag_update_conf = true;
 }
 
+/// @brief Return a 404 NOT FOUND response.
+HttpResponse HttpServer::not_found(void) {
+    HttpResponse res;
+    strcpy(res.route, "/not_found.html");
+    res.mime_type = HTML;
+    res.code = NOT_FOUND;
+    res.conn = CLOSE;
+    return res;
+}
+
+/// @brief Reads the configuration file, and updates values.
 void HttpServer::update_configuration(void) {
     FILE* fd;
     char buffer[255];
     char* key, *value;
     int changed_value = 0;
     if ( (fd = fopen(this->config_file, "r")) == NULL) {
-        printf(INFO("Couldn't open the configuration file. Using default values.\n"));
-        this->backlog = DEFAULT_BACKLOG;
-        this->max_clients = DEFAULT_MAX_CLIENTS;
-        this->sensor_period = DEFAULT_SENSOR_PERIOD;
-        this->samples_moving_average_filter = DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
+        printf(WARNING("Couldn't open the configuration file \"%s\". Using default values.\n"), this->config_file);
+        this->shm[0].backlog = DEFAULT_BACKLOG;
+        this->shm[0].max_clients = DEFAULT_MAX_CLIENTS;
+        this->shm[0].sensor_period = DEFAULT_SENSOR_PERIOD;
+        this->shm[0].samples_moving_average_filter = DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
         return;
     }
     while(fgets(buffer, sizeof(buffer), fd) != NULL) {
@@ -163,31 +189,31 @@ void HttpServer::update_configuration(void) {
         }
         if(strcmp(key, "backlog") == 0) {
             changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_BACKLOG;
-            if (changed_value == this->backlog) {
+            if (changed_value == this->shm[0].backlog) {
                 continue;
             } else if (changed_value >= 1) {
-                this->backlog = changed_value;
+                this->shm[0].backlog = changed_value;
             }
         } else if (strcmp(key, "max_clients") == 0) {
             changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_MAX_CLIENTS;
-            if (changed_value == this->max_clients) {
+            if (changed_value == this->shm[0].max_clients) {
                 continue;
             } else if (changed_value >= 1) {
-                this->max_clients = changed_value;
+                this->shm[0].max_clients = changed_value;
             }
         } else if (strcmp(key, "sensor_period") == 0) {
             changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SENSOR_PERIOD;
-            if (changed_value == this->sensor_period) {
+            if (changed_value == this->shm[0].sensor_period) {
                 continue;
             } else if (changed_value >= 1) {
-                this->sensor_period = changed_value;
+                this->shm[0].sensor_period = changed_value;
             }
         } else if (strcmp(key, "samples_moving_average_filter") == 0) {
             changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
-            if (changed_value == this->samples_moving_average_filter) {
+            if (changed_value == this->shm[0].samples_moving_average_filter) {
                 continue;
             } else if (changed_value >= 1) {
-                this->samples_moving_average_filter = changed_value;
+                this->shm[0].samples_moving_average_filter = changed_value;
             }
         } else {
             printf(WARNING("Unknown key: %s.\n"), key);
@@ -196,7 +222,7 @@ void HttpServer::update_configuration(void) {
         if (changed_value <= 0) {
             printf(WARNING("Invalid value for key \"%s\", old value will be kept.\n"), key);
         } else {
-            printf(INFO("Configuration \"%s\" was set to %d.\n"), key, changed_value);
+            printf(INFO("\"%s\" was set to %d.\n"), key, changed_value);
         }
     }
     fclose(fd);
