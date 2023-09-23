@@ -31,7 +31,9 @@ HttpServer::HttpServer(const char* ip, const char* port, const char* config_file
     strncpy(this->config_file, config_file, sizeof(this->config_file));
     Signal::set_handler(SIGUSR1, HttpServer::sigusr1_handler);
     this->get_socket().get_my_ip(my_ip);
-    printf(OK("Server PID: %d.\n") OK("Server IP: %s\n") OK("Server port: %d\n"),
+    printf(OK("Server PID: %d.\n")
+        OK("Server IP: %s\n")
+        OK("Server port: %d\n"),
         getpid(), my_ip, this->get_socket().get_my_port());
 }
 
@@ -71,8 +73,17 @@ void HttpServer::on_accept(Socket& socket) {
                 res.code = OK;
                 res.conn = CLOSE;
             } else if (strcmp(req.route, "/update") == 0) {
-                sprintf(res.route, "{\"backlog\": %d, \"max_clients\": %d, \"sensor_period\": %d, \"samples_moving_average_filter\": %d, \"clients\": %d}",
-                    this->shm[0].backlog, this->shm[0].max_clients, this->shm[0].sensor_period, this->shm[0].samples_moving_average_filter, this->shm[0].client_count);
+                sprintf(res.route,
+                    "{\"backlog\": %d,"
+                    "\"max_clients\": %d,"
+                    "\"sensor_period\": %d,"
+                    "\"samples_moving_average_filter\": %d,"
+                    "\"clients\": %d}",
+                    this->shm[0].backlog,
+                    this->shm[0].max_clients,
+                    this->shm[0].sensor_period,
+                    this->shm[0].samples_moving_average_filter,
+                    this->shm[0].client_count);
                 res.mime_type = JSON;
                 res.code = OK;
                 res.conn = CLOSE;
@@ -94,17 +105,16 @@ void HttpServer::on_accept(Socket& socket) {
 /// @param req Where all the request's contents will be stored.
 /// @return "0" on success, "-1" on error.
 int HttpServer::request(Socket& socket, HttpRequest* req) {
-    char client_msg[10000];
-    char client_msg_copy[10000];
-    char* hi;
+    char client_msg[REQUEST_SIZE];
+    char client_msg_copy[REQUEST_SIZE];
+    char* buffer;
     if (socket.read(client_msg, sizeof(client_msg)) > 0) {
-        // printf("%s\n", client_msg); // TODO remove
         strcpy(client_msg_copy, client_msg);
-        hi = strtok(client_msg_copy, " ");
-        if (strcmp(hi, http_methods[GET]) == 0) {
+        buffer = strtok(client_msg_copy, " ");
+        if (strcmp(buffer, http_methods[GET]) == 0) {
             req->method = GET;
             strcpy(req->route, strtok(&(client_msg[strlen(http_methods[GET]) + 1]), " "));
-        } else if (strcmp(strtok(hi, " "), http_methods[POST]) == 0) {
+        } else if (strcmp(strtok(buffer, " "), http_methods[POST]) == 0) {
             req->method = POST;
             strcpy(req->route, strtok(&(client_msg[strlen(http_methods[POST]) + 1]), " "));
         }
@@ -113,17 +123,22 @@ int HttpServer::request(Socket& socket, HttpRequest* req) {
     return -1;
 }
 
+/// @brief Generate a response and send it to the client.
+/// @param socket The client socket.
+/// @param res If "res.route" starts with "/", then the contents of a file
+///  located inside the "SERVER_ROOT" folder will be read. Otherwise, the
+///  contents of "res.route" are handled as raw data to be sended.
 void HttpServer::response(Socket& socket, HttpResponse res) {
-    char buffer[1000000];
-    char rta[1000000];
-    long int bytes_read;
-    long int header_size;
+    char buffer[RESPONSE_SIZE];
+    char rta[RESPONSE_SIZE];
+    long bytes_read;
+    long header_size;
+    time_t time_var;
     if (res.route[0] == '/') {
         FILE* fd;
         strcpy(buffer, SERVER_ROOT);
         strcat(buffer, res.route);
         strcpy(res.route, buffer);
-
         if ((fd = fopen(res.route, "rb")) == NULL) {
             res = this->not_found();
         } else if ((bytes_read = fread(buffer, 1, sizeof(buffer), fd)) == 0) {
@@ -134,12 +149,21 @@ void HttpServer::response(Socket& socket, HttpResponse res) {
         bytes_read = strlen(res.route);
         strcpy(buffer, res.route);
     }
+    time_var = time(NULL);
     sprintf(rta,
         "HTTP/1.1 %s\n"
+        "Server: %s\n"
+        "Date: %s"
         "Content-Length: %ld\n"
         "Content-Type: %s\n"
+        "Content-Language: en\n"
         "Connection: %s\n\n",
-        http_codes[res.code], bytes_read, http_mime_types[res.mime_type], http_conns[res.conn]);
+        http_codes[res.code],
+        SERVER_NAME,
+        ctime(&time_var),
+        bytes_read,
+        http_mime_types[res.mime_type],
+        http_conns[res.conn]);
     header_size = strlen(rta);
     memcpy(&rta[header_size], buffer, bytes_read);
     socket.write(rta, header_size + bytes_read);
@@ -161,7 +185,7 @@ HttpResponse HttpServer::not_found(void) {
     return res;
 }
 
-/// @brief Reads the configuration file, and updates values.
+/// @brief Reads the configuration file and updates values.
 void HttpServer::update_configuration(void) {
     FILE* fd;
     char buffer[255];
@@ -178,12 +202,11 @@ void HttpServer::update_configuration(void) {
     while(fgets(buffer, sizeof(buffer), fd) != NULL) {
         changed_value = 0;
         buffer[strcspn(buffer, "\n")] = '\0';
-        key = strtok(buffer, "=");
-        value = strtok(NULL, "=");
-        if (key == NULL) {
-            printf(WARNING("Badly formatted key in configuration file.\n"));
+        if (strstr(buffer, "=") == NULL) {
             continue;
         }
+        key = strtok(buffer, "=");
+        value = strtok(NULL, "=");
         if(strcmp(key, "backlog") == 0) {
             changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_BACKLOG;
             if (changed_value == this->shm[0].backlog) {
