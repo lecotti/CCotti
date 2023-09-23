@@ -14,15 +14,15 @@
     <p id="clients">0</p>
 </body>
 <script>
-    var isRequestPending = false;
-    var req = new XMLHttpRequest();
-    var json;
-    req.onreadystatechange = serverHandler;
-    req.onerror = serverError;
-    var intervalID = setInterval(update, 10000);
     window.onbeforeunload = function (e) {
         navigator.sendBeacon("/dc", "");
     };
+    var isRequestPending = false;
+    var json;
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = serverHandler;
+    req.onerror = serverError;
+    var intervalID = setInterval(update, 10000);
     update();
 
     function update() {

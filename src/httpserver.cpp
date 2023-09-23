@@ -18,7 +18,7 @@ bool HttpServer::flag_update_conf = true;
 /// @param config_file Configuration file (config.cfg by default). Its content
 ///  are read when the signal SIGUSR1 is received.
 HttpServer::HttpServer(const char* ip, const char* port, const char* config_file):
-    Server(ip, port), shm(".", 123, 1) {
+    Server(ip, port), shm(".", 123, 1), sem(".", 456, true) {
     char my_ip[INET6_ADDRSTRLEN];
     serverData data {
         .backlog = 0,
@@ -61,7 +61,9 @@ void HttpServer::on_accept(Socket& socket) {
                 res.mime_type = HTML;
                 res.code = OK;
                 res.conn = CLOSE;
+                this->sem--;
                 this->shm[0].client_count++;
+                this->sem++;
             } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
                 strcpy(res.route, req.route);
                 res.mime_type = FAVICON;
@@ -91,9 +93,11 @@ void HttpServer::on_accept(Socket& socket) {
         } else if (req.method == POST) {
             if (strcmp(req.route, "/dc") == 0) {
                 if(this->shm[0].client_count > 0) {
+                    this->sem--;
                     this->shm[0].client_count--;
+                    this->sem++;
                 }
-                continue;
+                break;
             }
         }
         this->response(socket, res);

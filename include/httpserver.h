@@ -32,6 +32,7 @@ class HttpServer: public Server {
 protected:
     static bool flag_update_conf;
     SharedMemory<serverData> shm;
+    Sem sem;
     char config_file[CONFIG_FILE_PATH_SIZE];
 
     void on_start(void) override;
