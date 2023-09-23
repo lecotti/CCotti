@@ -14,7 +14,7 @@ Mutex::~Mutex(void) {
 /// @return "0" on success, -1 on error.
 int Mutex::lock(void) {
     if (pthread_mutex_lock(&(this->mutex)) != 0) {
-        perror(ERROR("pthread_mutex_lock in Mutex::lock.\n"));
+        perror(ERROR("pthread_mutex_lock in Mutex::lock"));
         return -1;
     }
     return 0;
@@ -24,7 +24,7 @@ int Mutex::lock(void) {
 /// @return "0" on success, -1 on error.
 int Mutex::unlock(void) {
     if (pthread_mutex_unlock(&(this->mutex)) != 0) {
-        perror(ERROR("pthread_mutex_unlock in Mutex::unlock.\n"));
+        perror(ERROR("pthread_mutex_unlock in Mutex::unlock"));
         return -1;
     }
     return 0;

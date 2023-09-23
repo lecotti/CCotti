@@ -11,12 +11,12 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
     key_t key;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror(ERROR("ftok in Sem::Sem.\n"));
+        perror(ERROR("ftok in Sem::Sem"));
         throw(std::runtime_error("ftok"));
     }
     if (create) {
         if ( (this->semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0666) ) == -1 ) {
-            perror(ERROR("semget in Sem::Sem.\n"));
+            perror(ERROR("semget in Sem::Sem"));
             throw(std::runtime_error("semget"));
         }
         if (this->set(1) != 0) {
@@ -24,7 +24,7 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
         }
     } else {
         if ( (this->semid = semget(key, 0, 0) ) == -1 ) {
-            perror(ERROR("semget in Sem::Sem.\n"));
+            perror(ERROR("semget in Sem::Sem"));
             throw(std::runtime_error("semget"));
         }
     }
@@ -35,7 +35,7 @@ Sem::Sem(const char* path, int id, bool create): creator(create) {
 Sem::~Sem(void) {
     if (this->creator && this->pid == gettid()) {
         if (semctl(this->semid, 0, IPC_RMID) == -1) {
-            perror(ERROR("semctl in Sem::~Sem.\n"));
+            perror(ERROR("semctl in Sem::~Sem"));
         }
     }
 }
@@ -59,7 +59,7 @@ bool Sem::exists(const char* path, int id) {
 /// @return "0" on success, "-1" on error.
 int Sem::set (unsigned int value) {
     if (semctl(this->semid, 0, SETVAL, (int) value) == -1) {
-        perror(ERROR("semctl in Sem::set.\n"));
+        perror(ERROR("semctl in Sem::set"));
         return -1;
     }
     return 0;
@@ -69,7 +69,7 @@ int Sem::set (unsigned int value) {
 int Sem::get(void) const {
     int sem_val;
     if ((sem_val = semctl(this->semid, 0, GETVAL)) == -1) {
-        perror(ERROR("semctl in Sem::get.\n"));
+        perror(ERROR("semctl in Sem::get"));
     }
     return sem_val;
 }
@@ -88,7 +88,7 @@ int Sem::op (int op) {
     sop.sem_op = op;
     sop.sem_flg = 0;
     if (semop(this->semid, &sop, 1) == -1) {
-        perror(ERROR("semop in Sem::op.\n"));
+        perror(ERROR("semop in Sem::op"));
         return -1;
     }
     return 0;

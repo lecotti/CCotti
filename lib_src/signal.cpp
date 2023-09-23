@@ -15,12 +15,12 @@ int Signal::set_handler (int signal, void(*signal_handler)(int), int flags, int*
     sigset_t mask;
     struct sigaction sa;
     if (sigemptyset(&mask) != 0) {
-        perror(ERROR("sigemptyset in Signal::set_handler.\n"));
+        perror(ERROR("sigemptyset in Signal::set_handler"));
         return -1;
     }
     for (int i = 0; i < size; i++) {
         if (sigaddset(&mask, signals_blocked_in_handler[i]) != 0) {
-            perror(ERROR("sigaddset in Signal::set_handler.\n"));
+            perror(ERROR("sigaddset in Signal::set_handler"));
             return -1;
         }
     }
@@ -28,7 +28,7 @@ int Signal::set_handler (int signal, void(*signal_handler)(int), int flags, int*
     sa.sa_handler = signal_handler;
     sa.sa_flags = flags;
     if (sigaction(signal, &sa, NULL) != 0) {
-        perror("sigaction in Signal::set_handler.\n");
+        perror("sigaction in Signal::set_handler");
         return -1;
     }
     return 0;
@@ -55,15 +55,15 @@ int Signal::set_default_handler(int signal) {
 int Signal::block(int signal) {
     sigset_t mask;
     if (sigemptyset(&mask) != 0) {
-        perror(ERROR("sigemptyset in Signal::block.\n"));
+        perror(ERROR("sigemptyset in Signal::block"));
         return -1;
     }
     if (sigaddset(&mask, signal) != 0) {
-        perror(ERROR("sigaddset in Signal::block.\n"));
+        perror(ERROR("sigaddset in Signal::block"));
         return -1;
     }
     if (pthread_sigmask(SIG_BLOCK, &mask, NULL) != 0) {
-        perror((ERROR("pthread_sigmask in Signal::block.\n")));
+        perror((ERROR("pthread_sigmask in Signal::block")));
         return -1;
     }
     return 0;
@@ -75,15 +75,15 @@ int Signal::block(int signal) {
 int Signal::unblock(int signal) {
     sigset_t mask;
     if (sigemptyset(&mask) != 0) {
-        perror(ERROR("sigemptyset in Signal::unblock.\n"));
+        perror(ERROR("sigemptyset in Signal::unblock"));
         return -1;
     }
     if (sigaddset( &mask, signal) != 0) {
-        perror(ERROR("sigaddset in Signal::unblock.\n"));
+        perror(ERROR("sigaddset in Signal::unblock"));
         return -1;
     }
     if (pthread_sigmask(SIG_UNBLOCK, &mask, NULL) != 0) {
-        perror((ERROR("pthread_sigmask in Signal::unblock.\n")));
+        perror((ERROR("pthread_sigmask in Signal::unblock")));
         return -1;
     }
     return 0;
@@ -94,11 +94,11 @@ int Signal::unblock(int signal) {
 int Signal::unblock_all(void) {
     sigset_t mask;
     if (sigemptyset(&mask) != 0) {
-        perror(ERROR("sigemptyset in Signal::unblock_all.\n"));
+        perror(ERROR("sigemptyset in Signal::unblock_all"));
         return -1;
     }
     if (pthread_sigmask(SIG_SETMASK, &mask, NULL) != 0) {
-        perror((ERROR("pthread_sigmask in Signal::unblock_all.\n")));
+        perror((ERROR("pthread_sigmask in Signal::unblock_all")));
         return -1;
     }
     return 0;
@@ -110,7 +110,7 @@ int Signal::unblock_all(void) {
 /// @return "0" on success, "-1" on error.
 int Signal::kill (pid_t pid, int signal) {
     if (::kill(pid, signal) != 0) {
-        perror(ERROR("kill in Signal::kill.\n"));
+        perror(ERROR("kill in Signal::kill"));
         return -1;
     }
     return 0;
@@ -122,7 +122,7 @@ int Signal::kill (pid_t pid, int signal) {
 /// @return "0" on success, "-1" on error.
 int Signal::kill (pthread_t thread_id, int signal) {
     if (pthread_kill(thread_id, signal) != 0) {
-        perror(ERROR("pthread_kill in Signal::kill.\n"));
+        perror(ERROR("pthread_kill in Signal::kill"));
         return -1;
     }
     return 0;
@@ -135,11 +135,11 @@ int Signal::kill (pthread_t thread_id, int signal) {
 int Signal::wait (int signal) {
     sigset_t mask;
     if (sigfillset(&mask) != 0) {
-        perror(ERROR("sigfillset in Signal::wait.\n"));
+        perror(ERROR("sigfillset in Signal::wait"));
         return -1;
     }
     if (sigdelset(&mask, signal) != 0) {
-        perror(ERROR("sigdelset in Signal::wait.\n"));
+        perror(ERROR("sigdelset in Signal::wait"));
         return -1;
     }
     sigsuspend(&mask); // Always returns -1 for signal interruption.
@@ -153,15 +153,15 @@ int Signal::wait_and_ignore (int signal) {
     sigset_t mask;
     int sig_return = 0;
     if (sigemptyset(&mask) != 0) {
-        perror(ERROR("sigemptyset in Signal::wait_and_ignore.\n"));
+        perror(ERROR("sigemptyset in Signal::wait_and_ignore"));
         return -1;
     }
     if (sigaddset(&mask, signal) != 0) {
-        perror(ERROR("sigaddset in Signal::wait_and_ignore.\n"));
+        perror(ERROR("sigaddset in Signal::wait_and_ignore"));
         return -1;
     }
     if (sigwait(&mask, &sig_return) != 0) {
-        perror(ERROR("sigwait in Signal::wait_and_ignore.\n"));
+        perror(ERROR("sigwait in Signal::wait_and_ignore"));
         return -1;
     }
     return 0;

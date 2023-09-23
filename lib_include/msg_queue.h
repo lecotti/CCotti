@@ -54,17 +54,17 @@ MsgQueue<msg_t>::MsgQueue(const char* path, int id, bool create): creator(create
     int flags = (create) ? (IPC_CREAT | 0666) : 0;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror(ERROR("ftok in MsgQueue::MsgQueue.\n"));
+        perror(ERROR("ftok in MsgQueue::MsgQueue"));
         throw(std::runtime_error("ftok"));
     }
     if (create) {
         if ( (this->msg_id = msgget(key, IPC_CREAT | IPC_EXCL | 0666) ) == -1) {
-            perror(ERROR("msgget in MsgQueue::MsgQueue.\n"));
+            perror(ERROR("msgget in MsgQueue::MsgQueue"));
             throw(std::runtime_error("msgget"));
         }
     } else {
         if ( (this->msg_id = msgget(key, 0)) == -1 ) {
-            perror(ERROR("msgget in MsgQueue::MsgQueue.\n"));
+            perror(ERROR("msgget in MsgQueue::MsgQueue"));
             throw(std::runtime_error("msgget"));
         }
     }
@@ -76,7 +76,7 @@ template <class msg_t>
 MsgQueue<msg_t>::~MsgQueue(void) {
     if (this->creator && this->pid == gettid()) {
         if (msgctl(this->msg_id, IPC_RMID, NULL) == -1) {
-            perror(ERROR("msgctl in MsgQueue::~MsgQueue.\n"));
+            perror(ERROR("msgctl in MsgQueue::~MsgQueue"));
         }
     }
 }
@@ -108,7 +108,7 @@ int MsgQueue<msg_t>::write(msg_t msg, long mtype) {
     sending_msg.mtype = mtype;
     sending_msg.msg = msg;
     if (msgsnd(this->msg_id, &sending_msg, (size_t) sizeof(msg_t), 0) == -1) {
-        perror(ERROR("msgsnd in MsgQueue::write.\n"));
+        perror(ERROR("msgsnd in MsgQueue::write"));
         return -1;
     }
     return 0;
@@ -135,7 +135,7 @@ msg_t MsgQueue<msg_t>::read(int mtype, int* status, int flags) {
     int error_state = 0;
     if( msgrcv(this->msg_id, &output, (size_t) sizeof(msg_t), (long) mtype, flags) == -1) {
         error_state = errno;
-        perror(ERROR("msgrcv in MsgQueue::read.\n"));
+        perror(ERROR("msgrcv in MsgQueue::read"));
     }
     if (status != NULL) {
         *status = error_state;
@@ -159,7 +159,7 @@ template <class msg_t>
 int MsgQueue<msg_t>::get_msg_qtty(void) {
     struct msqid_ds info;
     if (msgctl(this->msg_id, MSG_STAT, &info) == -1) {
-        perror(ERROR("msgctl in MsgQueue::get_msg_qtty.\n"));
+        perror(ERROR("msgctl in MsgQueue::get_msg_qtty"));
         return -1;
     }
     return (int) info.msg_qnum;

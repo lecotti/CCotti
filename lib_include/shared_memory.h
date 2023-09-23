@@ -55,24 +55,24 @@ SharedMemory<data_t>::SharedMemory(const char* path, int id, size_t size) {
     key_t key;
     this->pid = gettid();
     if ( (key = ftok(path, id) ) == -1) {
-        perror( ERROR("ftok in SharedMemory::SharedMemory.\n"));
+        perror( ERROR("ftok in SharedMemory::SharedMemory"));
         throw(std::runtime_error("ftok"));
     }
     if (size) {  // Create new
         this->creator = true;
         if( (this->shmid = shmget(key, (size_t)size*sizeof(data_t), IPC_CREAT | IPC_EXCL | 0666) ) == -1) {
-            perror(ERROR("shmget in SharedMemory::SharedMemory.\n"));
+            perror(ERROR("shmget in SharedMemory::SharedMemory"));
             throw(std::runtime_error("shmget"));
         }
     } else { // Connect to existing one
         this->creator = false;
         if( (this->shmid = shmget(key, 0, 0) ) == -1) {
-            perror(ERROR("shmget in SharedMemory::SharedMemory.\n"));
+            perror(ERROR("shmget in SharedMemory::SharedMemory"));
             throw(std::runtime_error("shmget"));
         }
     }
     if ( (this->shmaddr = (data_t*) shmat(this->shmid, NULL, 0)) == (data_t*) -1) {
-        perror(ERROR("shmat in SharedMemory::SharedMemory.\n"));
+        perror(ERROR("shmat in SharedMemory::SharedMemory"));
         throw(std::runtime_error("shmat"));
     }
 }
@@ -81,11 +81,11 @@ SharedMemory<data_t>::SharedMemory(const char* path, int id, size_t size) {
 template <class data_t>
 SharedMemory<data_t>::~SharedMemory() {
     if (shmdt((void *) this->shmaddr) == -1) {
-        perror(ERROR("shmdt in SharedMemory::~SharedMemory.\n"));
+        perror(ERROR("shmdt in SharedMemory::~SharedMemory"));
     }
     if (this->creator && this->pid == gettid()) {
         if (shmctl(this->shmid, IPC_RMID, NULL) == -1) {
-            perror(ERROR("shmctl in SharedMemory::~SharedMemory.\n"));
+            perror(ERROR("shmctl in SharedMemory::~SharedMemory"));
         }
     }
 }

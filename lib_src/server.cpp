@@ -26,13 +26,13 @@ void Server::start(int backlog) {
     while(!Server::exit) {
         this->on_start();
         if (listen(this->socket.get_sockfd(), this->backlog) != 0) {
-            perror(ERROR("Couldn't start the server with listen.\n"));
+            perror(ERROR("Couldn't start the server with listen"));
             return;
         }
         if ( (client_sockfd = accept(this->socket.get_sockfd(), (struct sockaddr*) &client_addr, &addrlen) ) == -1) {
             if (errno != EINTR) {
                 // The accept was NOT terminated by a signal
-                perror(WARNING("Couldn't accept a connection from a client.\n"));
+                perror(WARNING("Couldn't accept a connection from a client"));
             }
             continue;
         }
@@ -42,7 +42,7 @@ void Server::start(int backlog) {
         }
         this->on_new_client();
         if ((buff = fork()) == -1) {
-            perror(ERROR("fork in Server::start. Failed to create child.\n"));
+            perror(ERROR("fork in Server::start. Failed to create child"));
             client_socket.close();
             continue;
         } else if (buff == 0) {

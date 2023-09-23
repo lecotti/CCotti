@@ -29,22 +29,22 @@ Socket::Socket(const char* ip, const char* port, int family, int socktype, bool 
     hints.ai_protocol = 0;          // If "0", same protocol as "socktype".
     hints.ai_flags = (ip == NULL) ? AI_PASSIVE : 0; // if "AI_PASSIVE", listen on any IP.
     if (getaddrinfo(ip, port, &hints, &res) != 0) {
-        perror (ERROR("getaddrinfo in Socket::Socket.\n"));
+        perror (ERROR("getaddrinfo in Socket::Socket"));
         throw(std::runtime_error("getaddrinfo"));
     }
     for (p = res; p != NULL; p = p->ai_next) {
         if ( (this->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol) ) == -1) {
-            perror(WARNING("socket in Socket::Socket. Failed connection to one of the sockets.\n"));
+            perror(WARNING("socket in Socket::Socket. Failed connection to one of the sockets"));
             continue;
         }
         if (server) {
             if (setsockopt(this->sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes) ) == -1) {
-                perror(WARNING("setsockopt in Socket::Socket. Trying to reuse port.\n"));
+                perror(WARNING("setsockopt in Socket::Socket. Trying to reuse port"));
                 ::close(this->sockfd);
                 continue;
             }
             if (bind(this->sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-                perror(WARNING("bind in Socket::Socket.\n"));
+                perror(WARNING("bind in Socket::Socket"));
                 ::close(this->sockfd);
                 continue;
             }
@@ -57,7 +57,7 @@ Socket::Socket(const char* ip, const char* port, int family, int socktype, bool 
             this->peer_port = this->get_my_port();
         } else {
             if (connect(this->sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-                perror(WARNING("Couldn't connect to one of the sockets.\n"));
+                perror(WARNING("Couldn't connect to one of the sockets"));
                 ::close(this->sockfd);
                 continue;
             }
@@ -69,7 +69,7 @@ Socket::Socket(const char* ip, const char* port, int family, int socktype, bool 
         break;
     }
     if (p == NULL) {
-        fprintf(stderr, ERROR("Couldn't create the socket.\n"));
+        fprintf(stderr, ERROR("Couldn't create the socket"));
         throw(std::runtime_error("Socket"));
     }
     freeaddrinfo(res);
@@ -151,10 +151,10 @@ Socket::~Socket() {
 /// @brief Closes connection and cleans resources.
 void Socket::close(void) {
     if (shutdown(this->sockfd, SHUT_RDWR) == -1) {
-        perror(ERROR("shutdown in Socket::close.\n"));
+        perror(ERROR("shutdown in Socket::close"));
     }
     if (::close(this->sockfd) == -1) {
-        perror(ERROR("close in Socket::close.\n"));
+        perror(ERROR("close in Socket::close"));
     }
 }
 
@@ -174,7 +174,7 @@ int Socket::write(void* msg, int len, int flags) {
     do {
         // Don't generate SIGPIPE, return with -1 if peer was closed
         if ( (aux = send(this->sockfd, msg, len, flags | MSG_NOSIGNAL) ) == -1) {
-            perror(ERROR("send in Socket::write.\n"));
+            perror(ERROR("send in Socket::write"));
             bytes_sent = aux;
             break;
         }
@@ -193,7 +193,7 @@ int Socket::read(void* msg, int len, int flags) {
     int bytes_read = 0;
     bytes_read = recv(this->sockfd, msg, len, flags);
     if ( bytes_read == -1 ) {
-        perror(ERROR("recv in Socket::read.\n"));
+        perror(ERROR("recv in Socket::read"));
     } else if (bytes_read == 0) {
         fprintf(stderr, INFO("The other socket was closed gracefully, or a zero length message was sent.\n"));
     }
@@ -283,11 +283,11 @@ Socket& Socket::operator>> (char &a) {
 int Socket::get_ip_from_sockaddr(char* ip, struct sockaddr* sa) {
     if (sa->sa_family == AF_INET) {
         if (inet_ntop(sa->sa_family, &(((struct sockaddr_in*) sa)->sin_addr), ip, INET_ADDRSTRLEN) == NULL) {
-            perror(ERROR("inet_ntop in Socket::get_ip_from_sockaddr.\n"));
+            perror(ERROR("inet_ntop in Socket::get_ip_from_sockaddr"));
             return -1;
         }
     } else if (inet_ntop(sa->sa_family, &(((struct sockaddr_in6*)sa)->sin6_addr), ip, INET6_ADDRSTRLEN) == NULL) {
-            perror(ERROR("inet_ntop in Socket::get_ip_from_sockaddr.\n"));
+            perror(ERROR("inet_ntop in Socket::get_ip_from_sockaddr"));
             return -1;
     }
     return 0;
@@ -314,7 +314,7 @@ int Socket::get_ip_from_sockfd(int sockfd, char* ip) {
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof(addr);
     if (getsockname(sockfd, (struct sockaddr*)&addr, &addrlen) != 0) {
-        perror(ERROR("getsockname in Socket::get_ip_from_sockfd.\n"));
+        perror(ERROR("getsockname in Socket::get_ip_from_sockfd"));
         return -1;
     }
     this->get_ip_from_sockaddr(ip, (struct sockaddr*)&addr);
@@ -328,7 +328,7 @@ int Socket::get_port_from_sockfd(int sockfd) {
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof(addr);
     if (getsockname(sockfd, (struct sockaddr*)&addr, &addrlen) != 0) {
-        perror(ERROR("getsockname in Socket::get_port_from_sockfd.\n"));
+        perror(ERROR("getsockname in Socket::get_port_from_sockfd"));
         return -1;
     }
     return this->get_port_from_sockaddr((struct sockaddr*)&addr);
