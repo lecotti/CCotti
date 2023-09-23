@@ -194,9 +194,9 @@ int Socket::read(void* msg, int len, int flags) {
     bytes_read = recv(this->sockfd, msg, len, flags);
     if ( bytes_read == -1 ) {
         perror(ERROR("recv in Socket::read"));
-    } else if (bytes_read == 0) {
-        fprintf(stderr, INFO("The other socket was closed gracefully, or a zero length message was sent.\n"));
-    }
+    } // else if (bytes_read == 0) {
+    //     fprintf(stderr, INFO("The other socket was closed gracefully, or a zero length message was sent.\n"));
+    // }
     return bytes_read;
 }
 
