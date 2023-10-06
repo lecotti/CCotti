@@ -180,6 +180,73 @@ void HttpServer::sigusr1_handler(int signal) {
     HttpServer::flag_update_conf = true;
 }
 
+/// @brief Reads the configuration file and updates values.
+void HttpServer::update_configuration(void) {
+    FILE* fd;
+    char buffer[255];
+    char* key, *value;
+    int changed_value = 0;
+
+    this->sem--;
+    if ( (fd = fopen(this->config_file, "r")) == NULL) {
+        printf(WARNING("Couldn't open the configuration file \"%s\". Using default values.\n"), this->config_file);
+        this->shm[0].backlog = DEFAULT_BACKLOG;
+        this->shm[0].max_clients = DEFAULT_MAX_CLIENTS;
+        this->shm[0].sensor_period = DEFAULT_SENSOR_PERIOD;
+        this->shm[0].samples_moving_average_filter = DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
+        this->sem++;
+        return;
+    }
+    while(fgets(buffer, sizeof(buffer), fd) != NULL) {
+        changed_value = 0;
+        buffer[strcspn(buffer, "\n")] = '\0';
+        if (strstr(buffer, "=") == NULL) {
+            continue;
+        }
+        key = strtok(buffer, "=");
+        value = strtok(NULL, "=");
+        if(strcmp(key, "backlog") == 0) {
+            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_BACKLOG;
+            if (changed_value == this->shm[0].backlog) {
+                continue;
+            } else if (changed_value >= 1) {
+                this->shm[0].backlog = changed_value;
+            }
+        } else if (strcmp(key, "max_clients") == 0) {
+            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_MAX_CLIENTS;
+            if (changed_value == this->shm[0].max_clients) {
+                continue;
+            } else if (changed_value >= 1) {
+                this->shm[0].max_clients = changed_value;
+            }
+        } else if (strcmp(key, "sensor_period") == 0) {
+            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SENSOR_PERIOD;
+            if (changed_value == this->shm[0].sensor_period) {
+                continue;
+            } else if (changed_value >= 1) {
+                this->shm[0].sensor_period = changed_value;
+            }
+        } else if (strcmp(key, "samples_moving_average_filter") == 0) {
+            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
+            if (changed_value == this->shm[0].samples_moving_average_filter) {
+                continue;
+            } else if (changed_value >= 1) {
+                this->shm[0].samples_moving_average_filter = changed_value;
+            }
+        } else {
+            printf(WARNING("Unknown key: %s.\n"), key);
+            continue;
+        }
+        if (changed_value <= 0) {
+            printf(WARNING("Invalid value for key \"%s\", old value will be kept.\n"), key);
+        } else {
+            printf(INFO("\"%s\" was set to %d.\n"), key, changed_value);
+        }
+    }
+    this->sem++;
+    fclose(fd);
+}
+
 /******************************************************************************
  * HTTP server responses
 ******************************************************************************/
@@ -255,71 +322,4 @@ HttpResponse HttpServer::response_not_found(void) {
     res.code = NOT_FOUND;
     res.conn = CLOSE;
     return res;
-}
-
-/// @brief Reads the configuration file and updates values.
-void HttpServer::update_configuration(void) {
-    FILE* fd;
-    char buffer[255];
-    char* key, *value;
-    int changed_value = 0;
-
-    this->sem--;
-    if ( (fd = fopen(this->config_file, "r")) == NULL) {
-        printf(WARNING("Couldn't open the configuration file \"%s\". Using default values.\n"), this->config_file);
-        this->shm[0].backlog = DEFAULT_BACKLOG;
-        this->shm[0].max_clients = DEFAULT_MAX_CLIENTS;
-        this->shm[0].sensor_period = DEFAULT_SENSOR_PERIOD;
-        this->shm[0].samples_moving_average_filter = DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
-        this->sem++;
-        return;
-    }
-    while(fgets(buffer, sizeof(buffer), fd) != NULL) {
-        changed_value = 0;
-        buffer[strcspn(buffer, "\n")] = '\0';
-        if (strstr(buffer, "=") == NULL) {
-            continue;
-        }
-        key = strtok(buffer, "=");
-        value = strtok(NULL, "=");
-        if(strcmp(key, "backlog") == 0) {
-            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_BACKLOG;
-            if (changed_value == this->shm[0].backlog) {
-                continue;
-            } else if (changed_value >= 1) {
-                this->shm[0].backlog = changed_value;
-            }
-        } else if (strcmp(key, "max_clients") == 0) {
-            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_MAX_CLIENTS;
-            if (changed_value == this->shm[0].max_clients) {
-                continue;
-            } else if (changed_value >= 1) {
-                this->shm[0].max_clients = changed_value;
-            }
-        } else if (strcmp(key, "sensor_period") == 0) {
-            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SENSOR_PERIOD;
-            if (changed_value == this->shm[0].sensor_period) {
-                continue;
-            } else if (changed_value >= 1) {
-                this->shm[0].sensor_period = changed_value;
-            }
-        } else if (strcmp(key, "samples_moving_average_filter") == 0) {
-            changed_value = (atoi(value) != 0) ? atoi(value) : DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
-            if (changed_value == this->shm[0].samples_moving_average_filter) {
-                continue;
-            } else if (changed_value >= 1) {
-                this->shm[0].samples_moving_average_filter = changed_value;
-            }
-        } else {
-            printf(WARNING("Unknown key: %s.\n"), key);
-            continue;
-        }
-        if (changed_value <= 0) {
-            printf(WARNING("Invalid value for key \"%s\", old value will be kept.\n"), key);
-        } else {
-            printf(INFO("\"%s\" was set to %d.\n"), key, changed_value);
-        }
-    }
-    this->sem++;
-    fclose(fd);
 }

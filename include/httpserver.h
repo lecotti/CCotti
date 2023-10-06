@@ -44,9 +44,9 @@ protected:
 
     void on_start(void) override;
     void on_accept(Socket& socket) override;
-    static void sigusr1_handler(int signal);    // Updated text file
-    void response(Socket& socket, HttpResponse res);
     int request(Socket& socket, HttpRequest* req);
+    void response(Socket& socket, HttpResponse res);
+    static void sigusr1_handler(int signal);
     void update_configuration(void);
 
     // Responses
