@@ -7,11 +7,11 @@
 </head>
 <body>
     <h1>Backlog 10</h1>
-    <p>Backlog: </p><p id="backlog">0</p>
-    <p>Max clients: </p><p id="max_clients">0</p>
-    <p>Sensor period:</p><p id="sensor_period">0</p>
-    <p>Samples moving average filter: </p><p id="samples_moving_average_filter">0</p>
-    <p>Current clients: </p><p id="clients">0</p>
+    <p>Backlog: <span id="backlog">0</span></p>
+    <p>Max clients: <span id="max_clients">0</span></p>
+    <p>Sensor period: <span id="sensor_period">0</span></p>
+    <p>Samples moving average filter: <span id="samples_moving_average_filter">0</span></p>
+    <p>Current clients: <span id="clients">0</span></p>
 </body>
 <script>
     window.onbeforeunload = function (e) {
@@ -38,8 +38,6 @@
         if(req.readyState === 4) {
             isRequestPending = false;
             if (req.status === 200) {
-                console.log("Request responded");
-                console.log(req.responseText);
                 json = JSON.parse(req.responseText);
                 document.getElementById("backlog").textContent = json.backlog;
                 document.getElementById("max_clients").textContent = json.max_clients;

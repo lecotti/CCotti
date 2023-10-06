@@ -47,9 +47,16 @@ protected:
     static void sigusr1_handler(int signal);    // Updated text file
     void response(Socket& socket, HttpResponse res);
     int request(Socket& socket, HttpRequest* req);
-    HttpResponse response_not_found(void);
-    HttpResponse response_max_clients(void);
     void update_configuration(void);
+
+    // Responses
+    HttpResponse response_bad_request(void);
+    HttpResponse response_update(void);
+    HttpResponse response_404_image(void);
+    HttpResponse response_root(void);
+    HttpResponse response_favicon(void);
+    HttpResponse response_max_clients(void);
+    HttpResponse response_not_found(void);
 
 public:
     HttpServer(const char* ip=NULL, const char* port="http", const char* config_file="config.cfg");

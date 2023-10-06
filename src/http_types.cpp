@@ -13,6 +13,7 @@ const char http_conns[][20] = {
 const char http_codes[][20] = {
     "200 OK",
     "404 Not Found",
+    "400 Bad Request",
 };
 
 const char http_mime_types[][50] = {

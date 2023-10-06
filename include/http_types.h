@@ -17,6 +17,7 @@ typedef enum HttpConn {
 typedef enum HttpCode {
     OK = 0,
     NOT_FOUND,
+    BAD_REQUEST,
 } HttpCode;
 
 typedef enum HttpMimeType {

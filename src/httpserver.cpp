@@ -60,58 +60,34 @@ void HttpServer::on_accept(Socket& socket) {
          if (req.method == POST) {
             if (strcmp(req.route, "/dc") == 0) {
                 this->sem--;
-                printf(DEBUG("DC: %ld\n"), time(NULL));
                 if(this->shm[0].client_count > 0) {
                     this->shm[0].client_count--;
                 }
                 this->sem++;
-                break;
             }
         } else if (req.method == GET) {
             if (strcmp(req.route, "/") == 0) {
-                printf(DEBUG("CONNECT: %ld\n"), time(NULL));
-                usleep(5000);   // TODO improve this time
-                printf(DEBUG("after sleep\n"));
+                // This sleep is on purpose, to make sure that the "/dc" beacon
+                // arrives first in case of refreshing the page (race condition
+                // between "GET /" and "POST /dc")
+                usleep(5000);
                 this->sem--;
                 if (this->shm[0].client_count >= this->shm[0].max_clients) {
                     res = this->response_max_clients();
-                    this->response(socket, res);
-                    this->sem++;
-                    break;
                 } else {
-                    strcpy(res.route, "/index.html");
-                    res.mime_type = HTML;
-                    res.code = OK;
-                    res.conn = CLOSE;
+                    res = this->response_root();
                     this->shm[0].client_count++;
                 }
                 this->sem++;
             } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
-                strcpy(res.route, req.route);
-                res.mime_type = FAVICON;
-                res.code = OK;
-                res.conn = CLOSE;
+                res = this->response_favicon();
             } else if (strcmp(req.route, "/images/404.jpg") == 0) {
-                strcpy(res.route, req.route);
-                res.mime_type = JPG;
-                res.code = OK;
-                res.conn = CLOSE;
+                res = this->response_404_image();
             } else if (strcmp(req.route, "/update") == 0) {
-                sprintf(res.route,
-                    "{\"backlog\": %d,"
-                    "\"max_clients\": %d,"
-                    "\"sensor_period\": %d,"
-                    "\"samples_moving_average_filter\": %d,"
-                    "\"clients\": %d}",
-                    this->shm[0].backlog,
-                    this->shm[0].max_clients,
-                    this->shm[0].sensor_period,
-                    this->shm[0].samples_moving_average_filter,
-                    this->shm[0].client_count);
-                res.mime_type = JSON;
-                res.code = OK;
-                res.conn = CLOSE;
+                res = this->response_update();
             }
+        } else {
+            res = this->response_bad_request();
         }
         this->response(socket, res);
     }
@@ -204,19 +180,77 @@ void HttpServer::sigusr1_handler(int signal) {
     HttpServer::flag_update_conf = true;
 }
 
+/******************************************************************************
+ * HTTP server responses
+******************************************************************************/
+
+HttpResponse HttpServer::response_bad_request(void) {
+    HttpResponse res;
+    strcpy(res.route, "/errors/bad_request.html");
+    res.mime_type = HTML;
+    res.code = BAD_REQUEST;
+    res.conn = CLOSE;
+    return res;
+}
+
+HttpResponse HttpServer::response_update(void) {
+    HttpResponse res;
+    sprintf(res.route,
+            "{\"backlog\": %d,"
+            "\"max_clients\": %d,"
+            "\"sensor_period\": %d,"
+            "\"samples_moving_average_filter\": %d,"
+            "\"clients\": %d}",
+            this->shm[0].backlog,
+            this->shm[0].max_clients,
+            this->shm[0].sensor_period,
+            this->shm[0].samples_moving_average_filter,
+            this->shm[0].client_count);
+    res.mime_type = JSON;
+    res.code = OK;
+    res.conn = CLOSE;
+    return res;
+}
+
+HttpResponse HttpServer::response_404_image(void) {
+    HttpResponse res;
+    strcpy(res.route, "/images/404.jpg");
+    res.mime_type = JPG;
+    res.code = OK;
+    res.conn = CLOSE;
+    return res;
+}
+
+HttpResponse HttpServer::response_root(void) {
+    HttpResponse res;
+    strcpy(res.route, "/index.html");
+    res.mime_type = HTML;
+    res.code = OK;
+    res.conn = CLOSE;
+    return res;
+}
+
+HttpResponse HttpServer::response_favicon(void) {
+    HttpResponse res;
+    strcpy(res.route, "/images/favicon.ico");
+    res.mime_type = FAVICON;
+    res.code = OK;
+    res.conn = CLOSE;
+    return res;
+}
+
 HttpResponse HttpServer::response_max_clients(void) {
     HttpResponse res;
-    strcpy(res.route, "/max_clients.html");
+    strcpy(res.route, "/errors/max_clients.html");
     res.mime_type = HTML;
     res.code = NOT_FOUND; // TODO, check correct code
     res.conn = CLOSE;
     return res;
 }
 
-/// @brief Return a 404 NOT FOUND response.
 HttpResponse HttpServer::response_not_found(void) {
     HttpResponse res;
-    strcpy(res.route, "/not_found.html");
+    strcpy(res.route, "/errors/not_found.html");
     res.mime_type = HTML;
     res.code = NOT_FOUND;
     res.conn = CLOSE;
