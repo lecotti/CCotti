@@ -89,7 +89,10 @@ void HttpServer::on_accept(Socket& socket) {
         } else {
             res = this->response_bad_request();
         }
-        this->response(socket, res);
+        if ( this->response(socket, res) != 0) {
+            res = this->response_not_found();
+            this->response(socket, res);
+        }
     }
 }
 
@@ -133,29 +136,31 @@ int HttpServer::request(Socket& socket, HttpRequest* req) {
 /// @param res If "res.route" starts with "/", then the contents of a file
 ///  located inside the "SERVER_ROOT" folder will be read. Otherwise, the
 ///  contents of "res.route" are handled as raw data to be sended.
-void HttpServer::response(Socket& socket, HttpResponse res) {
-    char buffer[RESPONSE_SIZE];
-    char rta[RESPONSE_SIZE];
+/// @return "0" on success, not zero on error
+int HttpServer::response(Socket& socket, HttpResponse res) {
+    char header[RESPONSE_SIZE] = SERVER_ROOT;
+    char *answer = NULL;
+    long content_length, header_size, answer_size;
     long bytes_read;
-    long header_size;
-    time_t time_var;
+    time_t time_var = time(NULL);
+    FILE* fd = NULL;
+
+    // Get content length
     if (res.route[0] == '/') {
-        FILE* fd;
-        strcpy(buffer, SERVER_ROOT);
-        strcat(buffer, res.route);
-        strcpy(res.route, buffer);
+        strcat(header, res.route);
+        strcpy(res.route, header);
         if ((fd = fopen(res.route, "rb")) == NULL) {
             res = this->response_not_found();
-        } else if ((bytes_read = fread(buffer, 1, sizeof(buffer), fd)) == 0) {
-            res = this->response_not_found();
+        } else {
+            fseek(fd, 0L, SEEK_END);
+            content_length = ftell(fd);
+            rewind(fd);
         }
-        fclose(fd);
     } else {
-        bytes_read = strlen(res.route);
-        strcpy(buffer, res.route);
+        content_length = strlen(res.route);
     }
-    time_var = time(NULL);
-    sprintf(rta,
+
+    sprintf(header,
         "HTTP/1.1 %s\n"
         "Server: %s\n"
         "Date: %s"
@@ -163,15 +168,37 @@ void HttpServer::response(Socket& socket, HttpResponse res) {
         "Content-Type: %s\n"
         "Content-Language: en\n"
         "Connection: %s\n\n",
-        http_codes[res.code],
-        SERVER_NAME,
-        ctime(&time_var),
-        bytes_read,
-        http_mime_types[res.mime_type],
-        http_conns[res.conn]);
-    header_size = strlen(rta);
-    memcpy(&rta[header_size], buffer, bytes_read);
-    socket.write(rta, header_size + bytes_read);
+        http_codes[res.code], SERVER_NAME, ctime(&time_var), content_length,
+        http_mime_types[res.mime_type], http_conns[res.conn]);
+
+    header_size = strlen(header);
+    answer_size = header_size + content_length;
+
+    if((answer = (char *)malloc(answer_size)) == NULL) {
+        printf(ERROR("Not enough memory.\n"));
+        return -ENOMEM;
+    }
+    memcpy(answer, header, header_size);
+
+    if (fd != NULL) {
+        while(!feof(fd) && !ferror(fd)) {
+            if ((bytes_read = fread(header, 1, sizeof(header), fd)) > 0) {
+                memcpy(&answer[header_size], header, bytes_read);
+                header_size += bytes_read;
+            } else if (ferror(fd)) {
+                printf(ERROR("Error while reading file %s\n"), res.route);
+                break;
+            }
+        }
+        fclose(fd);
+    } else {
+        memcpy(&answer[header_size], res.route, content_length);
+    }
+    if (socket.write(answer, answer_size) == -1) {
+        printf(ERROR("Couldn't write response to peer\n"));
+        return -1;
+    }
+    return 0;
 }
 
 /// @brief When SIGUSR1 is received, the server will update its parameters

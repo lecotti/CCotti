@@ -23,7 +23,7 @@
 #define DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER 5
 #define SERVER_ROOT "web"
 #define REQUEST_SIZE 2048
-#define RESPONSE_SIZE 100000
+#define RESPONSE_SIZE 2048
 #define CONFIG_FILE_PATH_SIZE 256
 #define SERVER_NAME "Cotti_server"
 
@@ -45,7 +45,7 @@ protected:
     void on_start(void) override;
     void on_accept(Socket& socket) override;
     int request(Socket& socket, HttpRequest* req);
-    void response(Socket& socket, HttpResponse res);
+    int response(Socket& socket, HttpResponse res);
     static void sigusr1_handler(int signal);
     void update_configuration(void);
 
