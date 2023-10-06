@@ -117,23 +117,35 @@ void HttpServer::on_accept(Socket& socket) {
     }
 }
 
-/// @brief Process a HttpRequest.
+/// @brief Process a HttpRequest. Example request should be:
+///     GET /route xxxx     POST /route xxxx
 /// @param socket The client socket.
 /// @param req Where all the request's contents will be stored.
 /// @return "0" on success, "-1" on error.
 int HttpServer::request(Socket& socket, HttpRequest* req) {
     char client_msg[REQUEST_SIZE];
-    char client_msg_copy[REQUEST_SIZE];
-    char* buffer;
+    char *method = NULL;
+
     if (socket.read(client_msg, sizeof(client_msg)) > 0) {
-        strcpy(client_msg_copy, client_msg);
-        buffer = strtok(client_msg_copy, " ");
-        if (strcmp(buffer, http_methods[GET]) == 0) {
-            req->method = GET;
-            strcpy(req->route, strtok(&(client_msg[strlen(http_methods[GET]) + 1]), " "));
-        } else if (strcmp(strtok(buffer, " "), http_methods[POST]) == 0) {
-            req->method = POST;
-            strcpy(req->route, strtok(&(client_msg[strlen(http_methods[POST]) + 1]), " "));
+        for(int i = 0, index_first_space = 0; i < strlen(client_msg); i++) {
+            if (client_msg[i] == ' ' && index_first_space == 0) {
+                index_first_space = i;
+                method = (char*) malloc(index_first_space+1);
+                strncpy(&method[0], client_msg, i);
+                method[i] = '\0';
+                if(strcmp(method, http_methods[GET]) == 0) {
+                    req->method = GET;
+                } else if (strcmp(method, http_methods[POST]) == 0) {
+                    req->method = POST;
+                } else {
+                    req->method = INVALID;
+                }
+                free(method);
+            } else if (client_msg[i] == ' ') {
+                strncpy(req->route, &client_msg[index_first_space + 1], i - index_first_space - 1);
+                req->route[i - index_first_space - 1] = '\0';
+                break;
+            }
         }
         return 0;
     }

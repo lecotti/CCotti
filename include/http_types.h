@@ -1,9 +1,12 @@
 #ifndef H_HTTP_TYPES
 #define H_HTTP_TYPES
 
+#define ROUTE_SIZE 256
+
 typedef enum HttpMethod {
     GET = 0,
     POST,
+    INVALID,
 } HttpMethod;
 
 typedef enum HttpConn {
@@ -26,12 +29,12 @@ typedef enum HttpMimeType {
 } HttpMimeType;
 
 typedef struct HttpRequest {
-    char route[256];
+    char route[ROUTE_SIZE];
     HttpMethod method;
 } HttpRequest;
 
 typedef struct HttpResponse {
-    char route[256];
+    char route[ROUTE_SIZE];
     HttpMimeType mime_type;
     HttpCode code;
     HttpConn conn;
