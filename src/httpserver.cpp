@@ -263,12 +263,15 @@ void HttpServer::update_configuration(void) {
     char buffer[255];
     char* key, *value;
     int changed_value = 0;
+
+    this->sem--;
     if ( (fd = fopen(this->config_file, "r")) == NULL) {
         printf(WARNING("Couldn't open the configuration file \"%s\". Using default values.\n"), this->config_file);
         this->shm[0].backlog = DEFAULT_BACKLOG;
         this->shm[0].max_clients = DEFAULT_MAX_CLIENTS;
         this->shm[0].sensor_period = DEFAULT_SENSOR_PERIOD;
         this->shm[0].samples_moving_average_filter = DEFAULT_SAMPLES_MOVING_AVERAGE_FILTER;
+        this->sem++;
         return;
     }
     while(fgets(buffer, sizeof(buffer), fd) != NULL) {
@@ -317,5 +320,6 @@ void HttpServer::update_configuration(void) {
             printf(INFO("\"%s\" was set to %d.\n"), key, changed_value);
         }
     }
+    this->sem++;
     fclose(fd);
 }
