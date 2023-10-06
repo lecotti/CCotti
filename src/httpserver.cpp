@@ -18,7 +18,9 @@ bool HttpServer::flag_update_conf = true;
 /// @param config_file Configuration file (config.cfg by default). Its content
 ///  are read when the signal SIGUSR1 is received.
 HttpServer::HttpServer(const char* ip, const char* port, const char* config_file):
-    Server(ip, port), shm(".", 123, 1), sem(".", 456, true) {
+        Server(ip, port),
+        shm(SHM_PATH, SHM_ID, SHM_SIZE),
+        sem(SEM_PATH, SEM_ID, true) {
     char my_ip[INET6_ADDRSTRLEN];
     serverData data {
         .backlog = 0,
@@ -54,15 +56,35 @@ void HttpServer::on_accept(Socket& socket) {
     HttpRequest req;
     HttpResponse res;
     while(this->request(socket, &req) == 0) {
-        res = this->not_found();
-        if (req.method == GET) {
-            if (strcmp(req.route, "/") == 0) {
-                strcpy(res.route, "/index.html");
-                res.mime_type = HTML;
-                res.code = OK;
-                res.conn = CLOSE;
+        res = this->response_not_found();
+         if (req.method == POST) {
+            if (strcmp(req.route, "/dc") == 0) {
                 this->sem--;
-                this->shm[0].client_count++;
+                printf(DEBUG("DC: %ld\n"), time(NULL));
+                if(this->shm[0].client_count > 0) {
+                    this->shm[0].client_count--;
+                }
+                this->sem++;
+                break;
+            }
+        } else if (req.method == GET) {
+            if (strcmp(req.route, "/") == 0) {
+                printf(DEBUG("CONNECT: %ld\n"), time(NULL));
+                usleep(5000);   // TODO improve this time
+                printf(DEBUG("after sleep\n"));
+                this->sem--;
+                if (this->shm[0].client_count >= this->shm[0].max_clients) {
+                    res = this->response_max_clients();
+                    this->response(socket, res);
+                    this->sem++;
+                    break;
+                } else {
+                    strcpy(res.route, "/index.html");
+                    res.mime_type = HTML;
+                    res.code = OK;
+                    res.conn = CLOSE;
+                    this->shm[0].client_count++;
+                }
                 this->sem++;
             } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
                 strcpy(res.route, req.route);
@@ -89,15 +111,6 @@ void HttpServer::on_accept(Socket& socket) {
                 res.mime_type = JSON;
                 res.code = OK;
                 res.conn = CLOSE;
-            }
-        } else if (req.method == POST) {
-            if (strcmp(req.route, "/dc") == 0) {
-                if(this->shm[0].client_count > 0) {
-                    this->sem--;
-                    this->shm[0].client_count--;
-                    this->sem++;
-                }
-                break;
             }
         }
         this->response(socket, res);
@@ -144,9 +157,9 @@ void HttpServer::response(Socket& socket, HttpResponse res) {
         strcat(buffer, res.route);
         strcpy(res.route, buffer);
         if ((fd = fopen(res.route, "rb")) == NULL) {
-            res = this->not_found();
+            res = this->response_not_found();
         } else if ((bytes_read = fread(buffer, 1, sizeof(buffer), fd)) == 0) {
-            res = this->not_found();
+            res = this->response_not_found();
         }
         fclose(fd);
     } else {
@@ -179,8 +192,17 @@ void HttpServer::sigusr1_handler(int signal) {
     HttpServer::flag_update_conf = true;
 }
 
+HttpResponse HttpServer::response_max_clients(void) {
+    HttpResponse res;
+    strcpy(res.route, "/max_clients.html");
+    res.mime_type = HTML;
+    res.code = NOT_FOUND; // TODO, check correct code
+    res.conn = CLOSE;
+    return res;
+}
+
 /// @brief Return a 404 NOT FOUND response.
-HttpResponse HttpServer::not_found(void) {
+HttpResponse HttpServer::response_not_found(void) {
     HttpResponse res;
     strcpy(res.route, "/not_found.html");
     res.mime_type = HTML;
