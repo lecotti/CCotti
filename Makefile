@@ -23,7 +23,7 @@ compile: ## Compile binaries
 	cmake --build ./build
 
 .PHONY: exe
-exe: ./build/user_code
+exe: ./build/user_code	## Execute code
 	./build/user_code
 
 .PHONY: test
