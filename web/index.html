@@ -14,9 +14,6 @@
     <p>Current clients: <span id="clients">0</span></p>
 </body>
 <script>
-    window.onbeforeunload = function (e) {
-        navigator.sendBeacon("/dc", "");
-    };
     var isRequestPending = false;
     var json;
     var req = new XMLHttpRequest();
@@ -52,5 +49,10 @@
         clearInterval(intervalID);
         alert("Connection lost with the server!")
     }
+</script>
+<script>
+    window.onbeforeunload = function (e) {
+        navigator.sendBeacon("/dc", "");
+    };
 </script>
 </html>

@@ -79,12 +79,14 @@ void HttpServer::on_accept(Socket& socket) {
                     this->shm[0].client_count++;
                 }
                 this->sem++;
-            } else if (strcmp(req.route, "/images/favicon.ico") == 0) {
+            } else if (strcmp(req.route, "/update") == 0) {
+                res = this->response_update();
+            }else if (strcmp(req.route, "/images/favicon.ico") == 0) {
                 res = this->response_favicon();
             } else if (strcmp(req.route, "/images/404.jpg") == 0) {
                 res = this->response_404_image();
-            } else if (strcmp(req.route, "/update") == 0) {
-                res = this->response_update();
+            } else if (strcmp(req.route, "/images/max_clients.jpg") == 0) {
+                res = this->response_max_clients_image();
             }
         } else {
             res = this->response_bad_request();
@@ -105,30 +107,33 @@ int HttpServer::request(Socket& socket, HttpRequest* req) {
     char client_msg[REQUEST_SIZE];
     char *method = NULL;
 
-    if (socket.read(client_msg, sizeof(client_msg)) > 0) {
-        for(int i = 0, index_first_space = 0; i < strlen(client_msg); i++) {
-            if (client_msg[i] == ' ' && index_first_space == 0) {
-                index_first_space = i;
-                method = (char*) malloc(index_first_space+1);
-                strncpy(&method[0], client_msg, i);
-                method[i] = '\0';
-                if(strcmp(method, http_methods[GET]) == 0) {
-                    req->method = GET;
-                } else if (strcmp(method, http_methods[POST]) == 0) {
-                    req->method = POST;
-                } else {
-                    req->method = INVALID;
-                }
-                free(method);
-            } else if (client_msg[i] == ' ') {
-                strncpy(req->route, &client_msg[index_first_space + 1], i - index_first_space - 1);
-                req->route[i - index_first_space - 1] = '\0';
-                break;
-            }
-        }
-        return 0;
+    if (socket.read(client_msg, sizeof(client_msg)) <= 0) {
+        return -1;
     }
-    return -1;
+    if (strstr(client_msg, "Purpose: prefetch")) {
+        return -1;
+    }
+    for(int i = 0, index_first_space = 0; i < strlen(client_msg); i++) {
+        if (client_msg[i] == ' ' && index_first_space == 0) {
+            index_first_space = i;
+            method = (char*) malloc(index_first_space+1);
+            strncpy(&method[0], client_msg, i);
+            method[i] = '\0';
+            if(strcmp(method, http_methods[GET]) == 0) {
+                req->method = GET;
+            } else if (strcmp(method, http_methods[POST]) == 0) {
+                req->method = POST;
+            } else {
+                req->method = INVALID;
+            }
+            free(method);
+        } else if (client_msg[i] == ' ') {
+            strncpy(req->route, &client_msg[index_first_space + 1], i - index_first_space - 1);
+            req->route[i - index_first_space - 1] = '\0';
+            break;
+        }
+    }
+    return 0;
 }
 
 /// @brief Generate a response and send it to the client.
@@ -309,6 +314,15 @@ HttpResponse HttpServer::response_update(void) {
 HttpResponse HttpServer::response_404_image(void) {
     HttpResponse res;
     strcpy(res.route, "/images/404.jpg");
+    res.mime_type = JPG;
+    res.code = OK;
+    res.conn = CLOSE;
+    return res;
+}
+
+HttpResponse HttpServer::response_max_clients_image(void) {
+    HttpResponse res;
+    strcpy(res.route, "/images/max_clients.jpg");
     res.mime_type = JPG;
     res.code = OK;
     res.conn = CLOSE;

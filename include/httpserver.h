@@ -53,6 +53,7 @@ protected:
     HttpResponse response_bad_request(void);
     HttpResponse response_update(void);
     HttpResponse response_404_image(void);
+    HttpResponse response_max_clients_image(void);
     HttpResponse response_root(void);
     HttpResponse response_favicon(void);
     HttpResponse response_max_clients(void);
