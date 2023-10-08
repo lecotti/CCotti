@@ -20,8 +20,11 @@ bool HttpServer::flag_update_conf = true;
 HttpServer::HttpServer(const char* ip, const char* port, const char* config_file):
         Server(ip, port),
         shm(SHM_PATH, SHM_ID, SHM_SIZE),
-        sem(SEM_PATH, SEM_ID, true) {
+        sem(SEM_PATH, SEM_ID, true),
+        temp_sensor() {
+    FILE *fd;
     char my_ip[INET6_ADDRSTRLEN];
+    char str_pid[20];
     serverData data {
         .backlog = 0,
         .max_clients = 0,
@@ -37,6 +40,15 @@ HttpServer::HttpServer(const char* ip, const char* port, const char* config_file
         OK("Server IP: %s\n")
         OK("Server port: %d\n"),
         getpid(), my_ip, this->get_socket().get_my_port());
+
+    // Put PID of server in a file, to know where to send signals
+    sprintf(str_pid, "%d\n", getpid());
+    if ((fd = fopen(PID_FILE, "w")) == NULL) {
+        perror(ERROR("Couldn't create pid file\n"));
+        throw(std::runtime_error("error"));
+    }
+    fwrite(str_pid, 1, strlen(str_pid) + 1, fd);
+    fclose(fd);
 }
 
 /// @brief Before listening or accepting new connections:
@@ -299,12 +311,14 @@ HttpResponse HttpServer::response_update(void) {
             "\"max_clients\": %d,"
             "\"sensor_period\": %d,"
             "\"samples_moving_average_filter\": %d,"
-            "\"clients\": %d}",
+            "\"clients\": %d,"
+            "\"temp\": %.2f}",
             this->shm[0].backlog,
             this->shm[0].max_clients,
             this->shm[0].sensor_period,
             this->shm[0].samples_moving_average_filter,
-            this->shm[0].client_count);
+            this->shm[0].client_count,
+            this->shm[0].temp);
     res.mime_type = JSON;
     res.code = OK;
     res.conn = CLOSE;

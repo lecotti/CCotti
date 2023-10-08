@@ -1,7 +1,22 @@
 #ifndef H_HTTP_TYPES
 #define H_HTTP_TYPES
 
+#define SHM_PATH    "."
+#define SHM_ID      123
+#define SHM_SIZE    1
+#define SEM_PATH    "."
+#define SEM_ID      456
+
 #define ROUTE_SIZE 256
+
+typedef struct serverData {
+    int backlog;
+    int max_clients;
+    int sensor_period;
+    int samples_moving_average_filter;
+    int client_count;
+    float temp;
+} serverData;
 
 typedef enum HttpMethod {
     GET = 0,

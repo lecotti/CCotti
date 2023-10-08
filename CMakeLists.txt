@@ -12,18 +12,12 @@ add_subdirectory(lib_src)
 add_subdirectory(test)
 add_subdirectory(src)
 
-add_executable(
-    user_code
-    ${USER_SRC}
-)
+add_executable(cotti_server ${USER_SRC})
 
-target_include_directories(user_code PUBLIC
-    ${USER_INC}
-)
+target_include_directories(cotti_server PUBLIC ${USER_INC})
 
-target_link_libraries(user_code
-    ipc_lib
-)
+target_link_libraries(cotti_server PUBLIC ipc_lib)
+
 
 ###############################################################################
 #   Install

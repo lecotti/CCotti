@@ -10,12 +10,9 @@
 #include <time.h>
 #include <unistd.h>
 #include "http_types.h"
+#include "temp_sensor.h"
 
-#define SHM_PATH    "."
-#define SHM_ID      123
-#define SHM_SIZE    1
-#define SEM_PATH    "."
-#define SEM_ID      456
+#define PID_FILE    "/tmp/cotti_server_id"
 
 #define DEFAULT_BACKLOG 2
 #define DEFAULT_MAX_CLIENTS 1000
@@ -27,19 +24,12 @@
 #define CONFIG_FILE_PATH_SIZE 256
 #define SERVER_NAME "Cotti_server"
 
-typedef struct serverData {
-    int backlog;
-    int max_clients;
-    int sensor_period;
-    int samples_moving_average_filter;
-    int client_count;
-} serverData;
-
 class HttpServer: public Server {
 protected:
     static bool flag_update_conf;
     SharedMemory<serverData> shm;
     Sem sem;
+    TempSensor temp_sensor;
     char config_file[CONFIG_FILE_PATH_SIZE];
 
     void on_start(void) override;
