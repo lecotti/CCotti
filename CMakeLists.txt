@@ -10,14 +10,6 @@ set(CMAKE_CXX_STANDARD 11)
 ###############################################################################
 add_subdirectory(lib_src)
 add_subdirectory(test)
-add_subdirectory(src)
-
-add_executable(cotti_server ${USER_SRC})
-
-target_include_directories(cotti_server PUBLIC ${USER_INC})
-
-target_link_libraries(cotti_server PUBLIC ipc_lib)
-
 
 ###############################################################################
 #   Install
